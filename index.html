@@ -175,7 +175,12 @@ input, select, textarea { font-family: inherit; }
     <div class="field"><label>Nombre del producto</label><input id="formName" placeholder="Ej: Cartera de cuero símil"></div>
     <div class="field"><label>Precio (ARS)</label><input id="formPrice" type="number" placeholder="Ej: 24000"></div>
     <div class="field"><label>Categoría</label><input id="formCat" list="catList" placeholder="Ej: Bolsos"><datalist id="catList"></datalist></div>
-    <div class="field"><label>Imagen (link a la foto, opcional)</label><input id="formImg" placeholder="https://..."><div class="field-hint">Vacío = ícono genérico.</div></div>
+    <div class="field"><label>Foto del producto</label>
+      <input type="file" id="formImgFile" accept="image/*" onchange="handleImageSelect(event)">
+      <div class="field-hint" id="imgUploadHint">Elegí una foto de la galería o sacá una con la cámara. Vacío = ícono genérico.</div>
+      <img id="imgPreview" style="display:none; max-width:100%; max-height:120px; margin-top:8px; border-radius:8px;">
+      <input type="hidden" id="formImg">
+    </div>
     <div class="field"><label>Estado</label>
       <div class="radio-row">
         <label><input type="radio" name="formStatus" value="disponible" checked> Disponible</label>
@@ -379,6 +384,57 @@ input, select, textarea { font-family: inherit; }
     }).join('');
   }
 
+  window.handleImageSelect = async function(event){
+    const file = event.target.files[0];
+    if (!file) return;
+    const hint = document.getElementById('imgUploadHint');
+    hint.textContent = 'Subiendo foto...';
+    try {
+      const compressed = await compressImage(file);
+      const path = 'products/' + Date.now() + '-' + Math.random().toString(36).slice(2) + '.jpg';
+      const res = await fetch(SUPABASE_URL + '/storage/v1/object/product-images/' + path, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+          'Content-Type': 'image/jpeg'
+        },
+        body: compressed
+      });
+      if (!res.ok) throw new Error('No se pudo subir la foto');
+      const publicUrl = SUPABASE_URL + '/storage/v1/object/public/product-images/' + path;
+      document.getElementById('formImg').value = publicUrl;
+      document.getElementById('imgPreview').src = publicUrl;
+      document.getElementById('imgPreview').style.display = 'block';
+      hint.textContent = '✅ Foto subida.';
+    } catch (err) {
+      hint.textContent = '❌ No se pudo subir la foto. Probá de nuevo.';
+      console.error(err);
+    }
+  };
+
+  // Reduce la foto a un tamaño razonable (máx 1000px de ancho) para que el catálogo cargue rápido.
+  function compressImage(file){
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const reader = new FileReader();
+      reader.onload = (e) => { img.src = e.target.result; };
+      reader.onerror = reject;
+      img.onload = () => {
+        const maxWidth = 1000;
+        const scale = Math.min(1, maxWidth / img.width);
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.8);
+      };
+      img.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
   window.handleAdminToggle = function(){
     if (isAdmin) {
       isAdmin = false; adminPin = null;
@@ -439,6 +495,13 @@ input, select, textarea { font-family: inherit; }
       document.getElementById('formPrice').value = p.price;
       document.getElementById('formCat').value = p.category || '';
       document.getElementById('formImg').value = p.image || '';
+      document.getElementById('imgUploadHint').textContent = 'Elegí una foto de la galería o sacá una con la cámara. Vacío = ícono genérico.';
+      if (p.image) {
+        document.getElementById('imgPreview').src = p.image;
+        document.getElementById('imgPreview').style.display = 'block';
+      } else {
+        document.getElementById('imgPreview').style.display = 'none';
+      }
       document.querySelector('input[name=formStatus][value="' + p.status + '"]').checked = true;
     } else {
       document.getElementById('formTitle').textContent = 'Nuevo producto';
@@ -446,6 +509,9 @@ input, select, textarea { font-family: inherit; }
       document.getElementById('formPrice').value = '';
       document.getElementById('formCat').value = '';
       document.getElementById('formImg').value = '';
+      document.getElementById('formImgFile').value = '';
+      document.getElementById('imgUploadHint').textContent = 'Elegí una foto de la galería o sacá una con la cámara. Vacío = ícono genérico.';
+      document.getElementById('imgPreview').style.display = 'none';
       document.querySelector('input[name=formStatus][value="disponible"]').checked = true;
     }
     document.getElementById('formOverlay').classList.add('show');
