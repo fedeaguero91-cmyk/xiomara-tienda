@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>xiomara.accs — Prueba de pago</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #F7F1EC; color: #241318; max-width: 480px; margin: 40px auto; padding: 0 20px; }
+  h1 { font-size: 20px; }
+  .msg { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; }
+  .msg.exito { background: #DDEFE1; color: #235C36; }
+  .msg.fallo { background: #F4DEE1; color: #7C3A49; }
+  .msg.pendiente { background: #FCEFD9; color: #6B4F16; }
+  .card { background: #fff; border: 1px solid #DCD0C6; border-radius: 10px; padding: 16px; margin-bottom: 14px; }
+  .card h3 { margin: 0 0 4px; }
+  .card .price { color: #B98B3E; font-weight: 700; margin-bottom: 10px; }
+  button { width: 100%; background: #9C4A5C; color: #fff; border: none; border-radius: 8px; padding: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  button:hover { background: #7C3A49; }
+  button:disabled { background: #C9BFB6; cursor: not-allowed; }
+  .hint { font-size: 12px; color: #8A7268; margin-top: 24px; }
+</style>
+</head>
+<body>
+  <h1>xiomara.accs — prueba de pago</h1>
+  <div id="statusMsg"></div>
+
+  <div class="card">
+    <h3>Cartera de cuero símil</h3>
+    <div class="price">$24.000</div>
+    <button onclick="comprar('Cartera de cuero símil', 24000, this)">Comprar con Mercado Pago</button>
+  </div>
+
+  <div class="card">
+    <h3>Lentes de sol polarizados</h3>
+    <div class="price">$15.500</div>
+    <button onclick="comprar('Lentes de sol polarizados', 15500, this)">Comprar con Mercado Pago</button>
+  </div>
+
+  <p class="hint">Esta es una página de prueba para validar que el pago funciona antes de integrarlo al catálogo completo. Usá el usuario de prueba de Mercado Pago para simular la compra, no una tarjeta real.</p>
+
+  <script>
+    async function comprar(title, price, btn) {
+      btn.disabled = true;
+      btn.textContent = 'Generando link de pago...';
+      try {
+        const res = await fetch('/.netlify/functions/create-preference', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, price, quantity: 1 })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.url) {
+          throw new Error(data.error || 'No se pudo generar el pago');
+        }
+        window.location.href = data.url;
+      } catch (err) {
+        alert('Error: ' + err.message);
+        btn.disabled = false;
+        btn.textContent = 'Comprar con Mercado Pago';
+      }
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const pago = params.get('pago');
+    if (pago) {
+      const box = document.getElementById('statusMsg');
+      const map = {
+        exito: ['exito', '✅ ¡Pago aprobado! Esto es lo que vería la compradora.'],
+        fallo: ['fallo', '❌ El pago no se completó.'],
+        pendiente: ['pendiente', '⏳ El pago quedó pendiente.']
+      };
+      const [cls, text] = map[pago] || [];
+      if (cls) {
+        box.innerHTML = '<div class="msg ' + cls + '">' + text + '</div>';
+      }
+    }
+  </script>
+</body>
+</html>

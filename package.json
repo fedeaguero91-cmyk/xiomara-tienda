@@ -1,0 +1,9 @@
+{
+  "name": "xiomara-tienda",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Catálogo y checkout de xiomara.accs",
+  "dependencies": {
+    "mercadopago": "^2.0.15"
+  }
+}
