@@ -4,6 +4,7 @@
   "private": true,
   "description": "Catálogo y checkout de xiomara.accs",
   "dependencies": {
-    "mercadopago": "^2.0.15"
+    "mercadopago": "^2.0.15",
+    "@supabase/supabase-js": "^2.45.4"
   }
 }

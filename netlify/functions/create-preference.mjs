@@ -1,4 +1,5 @@
 import { MercadoPagoConfig, Preference } from 'mercadopago';
+import { createClient } from '@supabase/supabase-js';
 
 // Esta función corre en el servidor de Netlify, nunca en el navegador del comprador.
 // El Access Token vive solo acá, como variable de entorno (MP_ACCESS_TOKEN),
@@ -20,8 +21,32 @@ export async function handler(event) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Body inválido' }) };
   }
 
-  const { title, price, quantity } = payload;
-  const priceNumber = Number(price);
+  let title, priceNumber, quantity;
+
+  if (payload.productId && process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    // Camino seguro: buscamos el precio real en la base, no confiamos en lo que manda el navegador.
+    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+    const { data: product, error } = await supabase
+      .from('products')
+      .select('name, price, status')
+      .eq('id', payload.productId)
+      .single();
+
+    if (error || !product) {
+      return { statusCode: 404, body: JSON.stringify({ error: 'Producto no encontrado' }) };
+    }
+    if (product.status === 'vendido') {
+      return { statusCode: 409, body: JSON.stringify({ error: 'Este producto ya fue vendido' }) };
+    }
+    title = product.name;
+    priceNumber = Number(product.price);
+    quantity = 1;
+  } else {
+    // Camino de compatibilidad (página de prueba simple sin base de datos).
+    title = payload.title;
+    priceNumber = Number(payload.price);
+    quantity = Number(payload.quantity) > 0 ? Number(payload.quantity) : 1;
+  }
 
   if (!title || !priceNumber || priceNumber <= 0) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Falta título o el precio no es válido' }) };
@@ -38,7 +63,7 @@ export async function handler(event) {
         items: [
           {
             title: String(title).slice(0, 200),
-            quantity: Number(quantity) > 0 ? Number(quantity) : 1,
+            quantity,
             unit_price: priceNumber,
             currency_id: 'ARS'
           }

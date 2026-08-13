@@ -3,77 +3,524 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>xiomara.accs — Prueba de pago</title>
+<title>xiomara.accs</title>
 <style>
-  body { font-family: system-ui, sans-serif; background: #F7F1EC; color: #241318; max-width: 480px; margin: 40px auto; padding: 0 20px; }
-  h1 { font-size: 20px; }
-  .msg { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; }
-  .msg.exito { background: #DDEFE1; color: #235C36; }
-  .msg.fallo { background: #F4DEE1; color: #7C3A49; }
-  .msg.pendiente { background: #FCEFD9; color: #6B4F16; }
-  .card { background: #fff; border: 1px solid #DCD0C6; border-radius: 10px; padding: 16px; margin-bottom: 14px; }
-  .card h3 { margin: 0 0 4px; }
-  .card .price { color: #B98B3E; font-weight: 700; margin-bottom: 10px; }
-  button { width: 100%; background: #9C4A5C; color: #fff; border: none; border-radius: 8px; padding: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
-  button:hover { background: #7C3A49; }
-  button:disabled { background: #C9BFB6; cursor: not-allowed; }
-  .hint { font-size: 12px; color: #8A7268; margin-top: 24px; }
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Work+Sans:wght@400;500;600;700&display=swap');
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: 'Work Sans', sans-serif;
+  color: #241318;
+  background: #F7F1EC;
+}
+button { font-family: inherit; cursor: pointer; }
+input, select, textarea { font-family: inherit; }
+.serif { font-family: 'Fraunces', serif; }
+
+.header { background: linear-gradient(160deg, #2E1A24, #3B2530); color: #F3E9E0; padding: 32px 24px 24px; }
+.brand-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; max-width: 1100px; margin: 0 auto; }
+.brand { font-family: 'Fraunces', serif; font-style: italic; font-weight: 500; font-size: 32px; }
+.tagline { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #C9A9AF; margin-top: 2px; }
+.count { font-size: 12px; color: #D8C3C9; white-space: nowrap; }
+.count b { color: #F3E9E0; font-weight: 600; }
+.search-row { display: flex; gap: 8px; margin-top: 18px; max-width: 1100px; margin-left: auto; margin-right: auto; }
+.search { flex: 1; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); border-radius: 10px; padding: 10px 14px; color: #F3E9E0; font-size: 14px; outline: none; }
+.search::placeholder { color: #B99CA3; }
+.search:focus { background: rgba(255,255,255,0.14); border-color: #B98B3E; }
+.chips { display: flex; gap: 8px; overflow-x: auto; margin-top: 14px; padding-bottom: 2px; max-width: 1100px; margin-left: auto; margin-right: auto; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex-shrink: 0; border: 1px solid rgba(255,255,255,0.22); background: transparent; color: #E7D5D9; padding: 6px 13px; border-radius: 999px; font-size: 12px; }
+.chip.active { background: #B98B3E; border-color: #B98B3E; color: #2A1D08; font-weight: 600; }
+
+.banner { background: #FCEFD9; border-bottom: 1px solid #EBD9AE; color: #6B4F16; font-size: 12.5px; padding: 10px 24px; display: none; align-items: center; gap: 8px; justify-content: center; }
+.banner.show { display: flex; }
+.banner button { background: none; border: none; color: #8A5A0E; font-weight: 600; text-decoration: underline; padding: 0; font-size: inherit; }
+
+.body { padding: 20px 24px 100px; max-width: 1100px; margin: 0 auto; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 18px; }
+.empty { text-align: center; padding: 60px 20px; color: #8A7268; }
+.empty .serif { font-size: 20px; margin-bottom: 6px; display: block; }
+.loading { padding: 60px 20px; text-align: center; color: #8A7268; font-size: 13px; }
+
+.card { background: #FFFDFB; border: 1px solid #DCD0C6; border-radius: 4px 12px 12px 4px; position: relative; overflow: hidden; }
+.tag-hole { position: absolute; top: 12px; left: -7px; width: 14px; height: 14px; border-radius: 50%; background: #F7F1EC; border: 1px solid #DCD0C6; z-index: 2; }
+.card-img { height: 150px; background: #EFE6DC; display: flex; align-items: center; justify-content: center; position: relative; border-bottom: 1px solid #DCD0C6; }
+.card-img img { width: 100%; height: 100%; object-fit: cover; }
+.card-img svg { width: 44px; height: 44px; opacity: 0.35; }
+.card.sold .card-img img, .card.sold .card-img svg { filter: grayscale(1); opacity: 0.45; }
+.ribbon { position: absolute; top: 10px; right: -30px; background: #7C3A49; color: #fff; font-size: 10px; letter-spacing: 1.5px; font-weight: 600; padding: 3px 34px; transform: rotate(38deg); display: none; }
+.card.sold .ribbon { display: block; }
+.card-body { padding: 12px 14px 14px 18px; }
+.card-cat { font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase; color: #9C4A5C; font-weight: 600; }
+.card-name { font-family: 'Fraunces', serif; font-size: 15.5px; line-height: 1.25; margin: 3px 0 6px; min-height: 38px; }
+.card-price { font-size: 15px; font-weight: 700; color: #B98B3E; font-family: 'Fraunces', serif; }
+.cta { margin-top: 8px; width: 100%; border: none; border-radius: 8px; padding: 9px 10px; font-size: 12.5px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.cta svg { width: 14px; height: 14px; }
+.cta-wsp { background: #4C7A5B; color: #fff; }
+.cta-wsp:hover { background: #3E6A4B; }
+.cta-mp { background: #2E1A24; color: #fff; }
+.cta-mp:hover { background: #3B2530; }
+.cta:disabled { background: #C9BFB6; color: #fff; cursor: not-allowed; }
+.sold-label { margin-top: 10px; text-align: center; font-size: 12px; color: #A98F86; font-style: italic; }
+
+.admin-bar { display: none; gap: 6px; padding: 8px 14px 0 18px; }
+.card.admin-on .admin-bar { display: flex; }
+.icon-btn { border: 1px solid #DCD0C6; background: #fff; border-radius: 6px; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; }
+.icon-btn svg { width: 13px; height: 13px; color: #241318; }
+.icon-btn.danger:hover { background: #F4DEE1; border-color: #9C4A5C; }
+.icon-btn.toggle.is-avail { color: #4C7A5B; }
+.confirm-del { display: flex; gap: 6px; align-items: center; font-size: 11px; color: #7C3A49; }
+.confirm-del button { border: none; background: none; font-weight: 700; padding: 2px 4px; }
+
+.fab-row { position: fixed; right: 20px; bottom: 20px; display: flex; flex-direction: column; gap: 10px; align-items: flex-end; z-index: 5; }
+.fab { border: none; border-radius: 999px; padding: 11px 18px; font-size: 12.5px; font-weight: 600; display: flex; align-items: center; gap: 7px; box-shadow: 0 6px 18px rgba(46,26,36,0.22); }
+.fab svg { width: 14px; height: 14px; }
+.fab.primary { background: #9C4A5C; color: #fff; }
+.fab.primary:hover { background: #7C3A49; }
+.fab.ghost { background: #fff; color: #241318; border: 1px solid #DCD0C6; }
+
+.overlay { position: fixed; inset: 0; background: rgba(36,19,24,0.45); display: none; align-items: center; justify-content: center; z-index: 20; padding: 16px; }
+.overlay.show { display: flex; }
+.panel { background: #fff; border-radius: 14px; width: 100%; max-width: 380px; max-height: 90vh; overflow-y: auto; padding: 22px 22px 18px; }
+.panel h3 { font-family: 'Fraunces', serif; font-size: 19px; margin: 0 0 14px; }
+.field { margin-bottom: 12px; }
+.field label { display: block; font-size: 11.5px; font-weight: 600; color: #6B5850; margin-bottom: 4px; }
+.field input, .field select, .field textarea { width: 100%; border: 1px solid #DCD0C6; border-radius: 8px; padding: 9px 10px; font-size: 13.5px; outline: none; }
+.field input:focus { border-color: #9C4A5C; }
+.field-hint { font-size: 11px; color: #A9998F; margin-top: 3px; }
+.radio-row { display: flex; gap: 14px; }
+.radio-row label { display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 500; }
+.panel-actions { display: flex; gap: 8px; margin-top: 16px; }
+.btn { flex: 1; border: none; border-radius: 8px; padding: 10px; font-size: 13px; font-weight: 600; }
+.btn.primary { background: #9C4A5C; color: #fff; }
+.btn.primary:hover { background: #7C3A49; }
+.btn.ghost { background: #F1E9E3; color: #241318; }
+.panel-close { float: right; background: none; border: none; font-size: 18px; color: #A9998F; }
+.pin-dots { display: flex; gap: 10px; justify-content: center; margin: 18px 0; }
+.pin-dots input { width: 42px; height: 50px; text-align: center; font-size: 22px; border: 1px solid #DCD0C6; border-radius: 8px; }
+
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(10px); background: #2E1A24; color: #F3E9E0; padding: 10px 18px; border-radius: 8px; font-size: 12.5px; opacity: 0; transition: opacity 0.2s, transform 0.2s; z-index: 30; pointer-events: none; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+@media (max-width: 480px) {
+  .grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .header { padding: 24px 16px 18px; }
+  .body { padding: 16px 16px 100px; }
+}
 </style>
 </head>
 <body>
-  <h1>xiomara.accs — prueba de pago</h1>
-  <div id="statusMsg"></div>
 
-  <div class="card">
-    <h3>Cartera de cuero símil</h3>
-    <div class="price">$24.000</div>
-    <button onclick="comprar('Cartera de cuero símil', 24000, this)">Comprar con Mercado Pago</button>
+<div class="header">
+  <div class="brand-row">
+    <div>
+      <div class="brand" id="brandName">xiomara.accs</div>
+      <div class="tagline" id="tagline">Accesorios de importación</div>
+    </div>
+    <div class="count" id="countLbl"></div>
   </div>
+  <div class="search-row"><input class="search" id="searchInput" placeholder="Buscar producto..."></div>
+  <div class="chips" id="chips"></div>
+</div>
 
-  <div class="card">
-    <h3>Lentes de sol polarizados</h3>
-    <div class="price">$15.500</div>
-    <button onclick="comprar('Lentes de sol polarizados', 15500, this)">Comprar con Mercado Pago</button>
+<div class="banner" id="banner">
+  ⚠️ Falta configurar el número de WhatsApp.
+  <button onclick="openSettings()">Configurar ahora</button>
+</div>
+
+<div class="body">
+  <div id="loading" class="loading">Cargando catálogo...</div>
+  <div class="grid" id="grid" style="display:none;"></div>
+  <div class="empty" id="empty" style="display:none;">
+    <span class="serif">No hay productos por acá</span>
+    Probá con otra búsqueda o agregá el primer producto.
   </div>
+</div>
 
-  <p class="hint">Esta es una página de prueba para validar que el pago funciona antes de integrarlo al catálogo completo. Usá el usuario de prueba de Mercado Pago para simular la compra, no una tarjeta real.</p>
+<div class="fab-row">
+  <button class="fab ghost" id="adminToggle" onclick="handleAdminToggle()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    <span id="adminLabel">Editar catálogo</span>
+  </button>
+  <button class="fab ghost" id="settingsBtn" style="display:none;" onclick="openSettings()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9M4.6 9a1.7 1.7 0 0 0-.3-1.9"/></svg>
+    Ajustes
+  </button>
+  <button class="fab primary" id="addBtn" style="display:none;" onclick="openForm()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+    Agregar producto
+  </button>
+</div>
 
-  <script>
-    async function comprar(title, price, btn) {
-      btn.disabled = true;
-      btn.textContent = 'Generando link de pago...';
-      try {
-        const res = await fetch('/.netlify/functions/create-preference', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title, price, quantity: 1 })
-        });
-        const data = await res.json();
-        if (!res.ok || !data.url) {
-          throw new Error(data.error || 'No se pudo generar el pago');
-        }
-        window.location.href = data.url;
-      } catch (err) {
-        alert('Error: ' + err.message);
-        btn.disabled = false;
-        btn.textContent = 'Comprar con Mercado Pago';
+<div class="overlay" id="pinOverlay">
+  <div class="panel" style="max-width:300px; text-align:center;">
+    <button class="panel-close" onclick="closeOverlay('pinOverlay')">✕</button>
+    <h3>Ingresá el PIN</h3>
+    <div class="pin-dots">
+      <input maxlength="1" inputmode="numeric" class="pinDigit">
+      <input maxlength="1" inputmode="numeric" class="pinDigit">
+      <input maxlength="1" inputmode="numeric" class="pinDigit">
+      <input maxlength="1" inputmode="numeric" class="pinDigit">
+    </div>
+    <button class="btn primary" style="width:100%;" onclick="checkPin()">Entrar</button>
+  </div>
+</div>
+
+<div class="overlay" id="formOverlay">
+  <div class="panel">
+    <button class="panel-close" onclick="closeOverlay('formOverlay')">✕</button>
+    <h3 id="formTitle">Nuevo producto</h3>
+    <input type="hidden" id="formId">
+    <div class="field"><label>Nombre del producto</label><input id="formName" placeholder="Ej: Cartera de cuero símil"></div>
+    <div class="field"><label>Precio (ARS)</label><input id="formPrice" type="number" placeholder="Ej: 24000"></div>
+    <div class="field"><label>Categoría</label><input id="formCat" list="catList" placeholder="Ej: Bolsos"><datalist id="catList"></datalist></div>
+    <div class="field"><label>Imagen (link a la foto, opcional)</label><input id="formImg" placeholder="https://..."><div class="field-hint">Vacío = ícono genérico.</div></div>
+    <div class="field"><label>Estado</label>
+      <div class="radio-row">
+        <label><input type="radio" name="formStatus" value="disponible" checked> Disponible</label>
+        <label><input type="radio" name="formStatus" value="vendido"> Vendido</label>
+      </div>
+    </div>
+    <div class="panel-actions">
+      <button class="btn ghost" onclick="closeOverlay('formOverlay')">Cancelar</button>
+      <button class="btn primary" onclick="saveProduct()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="settingsOverlay">
+  <div class="panel">
+    <button class="panel-close" onclick="closeOverlay('settingsOverlay')">✕</button>
+    <h3>Ajustes de la tienda</h3>
+    <div class="field"><label>Nombre de la marca</label><input id="setName"></div>
+    <div class="field"><label>Frase debajo del nombre</label><input id="setTagline"></div>
+    <div class="field"><label>WhatsApp (con código de país, sin +, sin espacios)</label><input id="setWsp" placeholder="Ej: 5493511234567"></div>
+    <div class="panel-actions">
+      <button class="btn ghost" onclick="closeOverlay('settingsOverlay')">Cancelar</button>
+      <button class="btn primary" onclick="saveSettings()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ---- Configuración pública (no son secretos, están pensados para verse) ----
+  const SUPABASE_URL = 'https://bulwqquqnrrggkcgpphi.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1bHdxcXVxbnJyZ2drY2dwcGhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2NTQzMTQsImV4cCI6MjEwMjIzMDMxNH0.6LW67VrcVX8zQ34qm_1UEArjm8MvLWtIX56LoP98KzM';
+
+  let PRODUCTS = [];
+  let SETTINGS = { store_name: 'xiomara.accs', tagline: '', whatsapp: '' };
+  let isAdmin = false;
+  let adminPin = null;
+  let searchTerm = '';
+  let activeCat = 'Todos';
+  let confirmingDeleteId = null;
+
+  const ICONS = {
+    default: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="7" width="16" height="13" rx="2"/><path d="M8 7V5a4 4 0 0 1 8 0v2"/></svg>',
+    bolsos: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="9" width="18" height="12" rx="2"/><path d="M8 9V6a4 4 0 0 1 8 0v3"/></svg>',
+    lentes: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6.5" cy="13" r="3.5"/><circle cx="17.5" cy="13" r="3.5"/><path d="M10 12h4M3 12l1-3h2M21 12l-1-3h-2"/></svg>',
+    relojes: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="13" r="7"/><path d="M12 9v4l3 2M9 3h6M9 3l1 3M15 3l-1 3"/></svg>',
+    bijou: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="14" r="6"/><path d="M9 8l3-5 3 5"/></svg>',
+    billeteras: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M16 12.5h3M3 10h18"/></svg>'
+  };
+  function iconFor(cat){
+    const k = (cat||'').toLowerCase();
+    if (k.includes('bols') || k.includes('mochi')) return ICONS.bolsos;
+    if (k.includes('lente') || k.includes('sol')) return ICONS.lentes;
+    if (k.includes('reloj')) return ICONS.relojes;
+    if (k.includes('bijou') || k.includes('joy') || k.includes('anillo') || k.includes('collar')) return ICONS.bijou;
+    if (k.includes('billet')) return ICONS.billeteras;
+    return ICONS.default;
+  }
+  function escHtml(s){
+    return String(s == null ? '' : s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+  window.imgFallback = function(img){
+    img.onerror = null;
+    const wrap = img.parentElement;
+    if (wrap) wrap.innerHTML = iconFor(img.getAttribute('data-cat') || '') + '<div class="ribbon">Vendido</div>';
+  };
+  function showToast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(()=> t.classList.remove('show'), 2200);
+  }
+
+  async function sbFetch(path, opts={}){
+    const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, {
+      ...opts,
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+        ...(opts.headers || {})
       }
-    }
+    });
+    if (!res.ok) throw new Error('Error de red con Supabase');
+    return res.json();
+  }
 
-    const params = new URLSearchParams(window.location.search);
-    const pago = params.get('pago');
-    if (pago) {
-      const box = document.getElementById('statusMsg');
-      const map = {
-        exito: ['exito', '✅ ¡Pago aprobado! Esto es lo que vería la compradora.'],
-        fallo: ['fallo', '❌ El pago no se completó.'],
-        pendiente: ['pendiente', '⏳ El pago quedó pendiente.']
-      };
-      const [cls, text] = map[pago] || [];
-      if (cls) {
-        box.innerHTML = '<div class="msg ' + cls + '">' + text + '</div>';
-      }
+  async function loadData(){
+    try {
+      const [products, settingsRows] = await Promise.all([
+        sbFetch('products?select=*&order=created_at.desc'),
+        sbFetch('store_settings?select=*&id=eq.1')
+      ]);
+      PRODUCTS = products;
+      if (settingsRows && settingsRows[0]) SETTINGS = settingsRows[0];
+    } catch (e) {
+      console.error(e);
+      showToast('No se pudo cargar el catálogo');
     }
-  </script>
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('grid').style.display = 'grid';
+    render();
+  }
+
+  function waLink(product){
+    const num = (SETTINGS.whatsapp || '').replace(/\D/g,'');
+    const msg = 'Hola! Vi el catálogo y quiero consultar por: ' + product.name + ' ($' + Number(product.price).toLocaleString('es-AR') + ')';
+    return 'https://wa.me/' + num + '?text=' + encodeURIComponent(msg);
+  }
+
+  async function buyWithMP(product, btn){
+    btn.disabled = true;
+    const original = btn.innerHTML;
+    btn.textContent = 'Generando link de pago...';
+    try {
+      const res = await fetch('/.netlify/functions/create-preference', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: product.id })
+      });
+      const result = await res.json();
+      if (!res.ok || !result.url) throw new Error(result.error || 'No se pudo generar el pago');
+      window.location.href = result.url;
+    } catch (err) {
+      showToast(err.message);
+      btn.disabled = false;
+      btn.innerHTML = original;
+    }
+  }
+
+  function render(){
+    document.getElementById('brandName').textContent = SETTINGS.store_name || 'Mi tienda';
+    document.getElementById('tagline').textContent = SETTINGS.tagline || '';
+    document.getElementById('banner').classList.toggle('show', !SETTINGS.whatsapp);
+
+    const cats = ['Todos', ...new Set(PRODUCTS.map(p => p.category).filter(Boolean))];
+    const chipsEl = document.getElementById('chips');
+    chipsEl.innerHTML = cats.map(c =>
+      '<button class="chip ' + (c === activeCat ? 'active' : '') + '" data-cat="' + escHtml(c) + '">' + escHtml(c) + '</button>'
+    ).join('');
+    chipsEl.querySelectorAll('.chip').forEach(btn => {
+      btn.onclick = () => { activeCat = btn.dataset.cat; render(); };
+    });
+
+    document.getElementById('catList').innerHTML = cats.filter(c => c !== 'Todos').map(c => '<option value="' + escHtml(c) + '">').join('');
+
+    let list = PRODUCTS.filter(p => {
+      const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCat = activeCat === 'Todos' || p.category === activeCat;
+      return matchesSearch && matchesCat;
+    });
+
+    const available = PRODUCTS.filter(p => p.status === 'disponible').length;
+    document.getElementById('countLbl').innerHTML = '<b>' + PRODUCTS.length + '</b> productos · <b>' + available + '</b> disponibles';
+
+    const grid = document.getElementById('grid');
+    const empty = document.getElementById('empty');
+    if (list.length === 0) { grid.style.display = 'none'; empty.style.display = 'block'; return; }
+    grid.style.display = 'grid'; empty.style.display = 'none';
+
+    grid.innerHTML = list.map(p => {
+      const sold = p.status === 'vendido';
+      const imgHtml = p.image
+        ? '<img src="' + escHtml(p.image) + '" alt="' + escHtml(p.name) + '" data-cat="' + escHtml(p.category||'') + '" onerror="imgFallback(this)">'
+        : iconFor(p.category);
+      const isConfirming = confirmingDeleteId === p.id;
+
+      return '' +
+      '<div class="card ' + (sold?'sold':'') + ' ' + (isAdmin?'admin-on':'') + '">' +
+        '<div class="tag-hole"></div>' +
+        '<div class="admin-bar">' +
+          (isConfirming
+            ? '<div class="confirm-del">¿Borrar? <button onclick="deleteProduct(\'' + p.id + '\')">Sí</button><button onclick="cancelDelete()">No</button></div>'
+            : '<button class="icon-btn toggle ' + (!sold?'is-avail':'') + '" title="Cambiar estado" onclick="toggleStatus(\'' + p.id + '\',\'' + (sold?'disponible':'vendido') + '\')">' +
+                (sold ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>') +
+              '</button>' +
+              '<button class="icon-btn" title="Editar" onclick="openForm(\'' + p.id + '\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>' +
+              '<button class="icon-btn danger" title="Eliminar" onclick="confirmDelete(\'' + p.id + '\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0-1 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 6"/></svg></button>'
+          ) +
+        '</div>' +
+        '<div class="card-img">' + imgHtml + '<div class="ribbon">Vendido</div></div>' +
+        '<div class="card-body">' +
+          '<div class="card-cat">' + escHtml(p.category || 'Sin categoría') + '</div>' +
+          '<div class="card-name">' + escHtml(p.name) + '</div>' +
+          '<div class="card-price">$' + Number(p.price||0).toLocaleString('es-AR') + '</div>' +
+          (sold
+            ? '<div class="sold-label">Ya no está disponible</div>'
+            : '<button class="cta cta-wsp" ' + (!SETTINGS.whatsapp?'disabled':'') + ' onclick="window.open(\'' + waLink(p) + '\',\'_blank\')">' +
+                '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2Zm5.7 14.2c-.2.6-1.3 1.2-1.9 1.3-.5.1-1.1.1-1.8-.1-.4-.1-.9-.3-1.6-.6-2.7-1.2-4.5-3.9-4.6-4.1-.1-.2-1.1-1.5-1.1-2.8 0-1.3.7-2 1-2.2.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .6.5.2.5.7 1.8.8 1.9.1.2.1.4 0 .6-.1.2-.2.3-.3.5-.2.2-.3.3-.5.5-.2.2-.3.4-.1.7.2.3.9 1.5 1.9 2.4 1.3 1.2 2.4 1.5 2.7 1.7.3.2.5.1.7-.1.2-.2.8-.9 1-1.2.2-.3.4-.2.7-.1.3.1 1.8.9 2.1 1 .3.2.5.2.6.3.1.2.1.7-.1 1.3Z"/></svg>' +
+                (SETTINGS.whatsapp ? 'Consultar por WhatsApp' : 'Falta configurar WhatsApp') +
+              '</button>' +
+              '<button class="cta cta-mp" onclick="buyWithMP(' + JSON.stringify(p).replace(/"/g,'&quot;') + ', this)">' +
+                '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>Comprar con Mercado Pago' +
+              '</button>'
+          ) +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  window.handleAdminToggle = function(){
+    if (isAdmin) {
+      isAdmin = false; adminPin = null;
+      document.getElementById('adminLabel').textContent = 'Editar catálogo';
+      document.getElementById('addBtn').style.display = 'none';
+      document.getElementById('settingsBtn').style.display = 'none';
+      render();
+      return;
+    }
+    document.getElementById('pinOverlay').classList.add('show');
+    const digits = document.querySelectorAll('.pinDigit');
+    digits.forEach(d => d.value = '');
+    digits[0].focus();
+    digits.forEach((d,i) => { d.oninput = () => { if (d.value && digits[i+1]) digits[i+1].focus(); }; });
+  };
+
+  window.checkPin = async function(){
+    const digits = document.querySelectorAll('.pinDigit');
+    const entered = Array.from(digits).map(d => d.value).join('');
+    try {
+      const res = await fetch('/.netlify/functions/admin-products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: entered, action: 'updateSettings', data: SETTINGS })
+      });
+      if (!res.ok) throw new Error();
+      adminPin = entered;
+      isAdmin = true;
+      document.getElementById('adminLabel').textContent = 'Salir de edición';
+      document.getElementById('addBtn').style.display = 'flex';
+      document.getElementById('settingsBtn').style.display = 'flex';
+      closeOverlay('pinOverlay');
+      render();
+    } catch {
+      showToast('PIN incorrecto');
+    }
+  };
+
+  window.closeOverlay = function(id){ document.getElementById(id).classList.remove('show'); };
+
+  async function callAdmin(action, data){
+    const res = await fetch('/.netlify/functions/admin-products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: adminPin, action, data })
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'Error');
+    return result;
+  }
+
+  window.openForm = function(id){
+    document.getElementById('formId').value = id || '';
+    if (id) {
+      const p = PRODUCTS.find(x => x.id === id);
+      document.getElementById('formTitle').textContent = 'Editar producto';
+      document.getElementById('formName').value = p.name;
+      document.getElementById('formPrice').value = p.price;
+      document.getElementById('formCat').value = p.category || '';
+      document.getElementById('formImg').value = p.image || '';
+      document.querySelector('input[name=formStatus][value="' + p.status + '"]').checked = true;
+    } else {
+      document.getElementById('formTitle').textContent = 'Nuevo producto';
+      document.getElementById('formName').value = '';
+      document.getElementById('formPrice').value = '';
+      document.getElementById('formCat').value = '';
+      document.getElementById('formImg').value = '';
+      document.querySelector('input[name=formStatus][value="disponible"]').checked = true;
+    }
+    document.getElementById('formOverlay').classList.add('show');
+  };
+
+  window.saveProduct = async function(){
+    const id = document.getElementById('formId').value;
+    const name = document.getElementById('formName').value.trim();
+    const price = document.getElementById('formPrice').value;
+    const category = document.getElementById('formCat').value.trim();
+    const image = document.getElementById('formImg').value.trim();
+    const status = document.querySelector('input[name=formStatus]:checked').value;
+    if (!name || !price) { showToast('Completá al menos nombre y precio'); return; }
+    try {
+      if (id) {
+        const { product } = await callAdmin('updateProduct', { id, name, price, category, image, status });
+        PRODUCTS = PRODUCTS.map(p => p.id === id ? product : p);
+      } else {
+        const { product } = await callAdmin('createProduct', { name, price, category, image, status });
+        PRODUCTS.unshift(product);
+      }
+      closeOverlay('formOverlay');
+      render();
+      showToast('Producto guardado');
+    } catch (e) { showToast(e.message); }
+  };
+
+  window.toggleStatus = async function(id, newStatus){
+    try {
+      const { product } = await callAdmin('toggleStatus', { id, status: newStatus });
+      PRODUCTS = PRODUCTS.map(p => p.id === id ? product : p);
+      render();
+    } catch (e) { showToast(e.message); }
+  };
+
+  window.confirmDelete = function(id){ confirmingDeleteId = id; render(); };
+  window.cancelDelete = function(){ confirmingDeleteId = null; render(); };
+  window.deleteProduct = async function(id){
+    try {
+      await callAdmin('deleteProduct', { id });
+      PRODUCTS = PRODUCTS.filter(p => p.id !== id);
+      confirmingDeleteId = null;
+      render();
+      showToast('Producto eliminado');
+    } catch (e) { showToast(e.message); }
+  };
+
+  window.openSettings = function(){
+    document.getElementById('setName').value = SETTINGS.store_name || '';
+    document.getElementById('setTagline').value = SETTINGS.tagline || '';
+    document.getElementById('setWsp').value = SETTINGS.whatsapp || '';
+    document.getElementById('settingsOverlay').classList.add('show');
+  };
+  window.saveSettings = async function(){
+    const store_name = document.getElementById('setName').value.trim() || 'Mi tienda';
+    const tagline = document.getElementById('setTagline').value.trim();
+    const whatsapp = document.getElementById('setWsp').value.trim();
+    try {
+      const { settings } = await callAdmin('updateSettings', { store_name, tagline, whatsapp });
+      SETTINGS = settings;
+      closeOverlay('settingsOverlay');
+      render();
+      showToast('Ajustes guardados');
+    } catch (e) { showToast(e.message); }
+  };
+
+  document.getElementById('searchInput').addEventListener('input', (e) => { searchTerm = e.target.value; render(); });
+
+  const params = new URLSearchParams(window.location.search);
+  const pago = params.get('pago');
+  if (pago === 'exito') setTimeout(() => showToast('✅ ¡Pago aprobado!'), 500);
+  if (pago === 'fallo') setTimeout(() => showToast('❌ El pago no se completó'), 500);
+  if (pago === 'pendiente') setTimeout(() => showToast('⏳ Pago pendiente'), 500);
+
+  loadData();
+</script>
 </body>
 </html>
