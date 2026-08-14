@@ -92,6 +92,16 @@ input, select, textarea { font-family: inherit; }
 .field input, .field select, .field textarea { width: 100%; border: 1px solid #DCD0C6; border-radius: 8px; padding: 9px 10px; font-size: 13.5px; outline: none; }
 .field input:focus, .field textarea:focus { border-color: #9C4A5C; }
 .field-hint { font-size: 11px; color: #A9998F; margin-top: 3px; }
+.carousel-track { height: 260px; background: #EFE6DC; position: relative; overflow: hidden; }
+.carousel-track img, .carousel-track video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.carousel-arrow { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.85); border: none; border-radius: 999px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; z-index: 2; }
+.carousel-arrow svg { width: 16px; height: 16px; }
+.carousel-dots { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; z-index: 2; }
+.carousel-dot { width: 6px; height: 6px; border-radius: 999px; background: rgba(255,255,255,0.6); }
+.carousel-dot.active { background: #fff; }
+.thumb { position: relative; width: 60px; height: 60px; border-radius: 8px; overflow: hidden; background: #EFE6DC; flex-shrink: 0; }
+.thumb img { width: 100%; height: 100%; object-fit: cover; }
+.thumb .thumb-remove { position: absolute; top: 2px; right: 2px; background: rgba(36,19,24,0.7); color: #fff; border: none; border-radius: 999px; width: 18px; height: 18px; font-size: 11px; line-height: 1; display: flex; align-items: center; justify-content: center; }
 .radio-row { display: flex; gap: 14px; }
 .radio-row label { display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 500; }
 .ship-options { display: flex; flex-direction: column; gap: 8px; }
@@ -216,11 +226,17 @@ input, select, textarea { font-family: inherit; }
     <div class="field"><label>Precio (ARS)</label><input id="formPrice" type="number" placeholder="Ej: 24000"></div>
     <div class="field"><label>Categoría</label><input id="formCat" list="catList" placeholder="Ej: Bolsos"><datalist id="catList"></datalist></div>
     <div class="field"><label>Descripción (opcional)</label><textarea id="formDesc" rows="3" placeholder="Material, medidas, detalles..."></textarea></div>
-    <div class="field"><label>Foto del producto</label>
-      <input type="file" id="formImgFile" accept="image/*" onchange="handleImageSelect(event)">
-      <div class="field-hint" id="imgUploadHint">Elegí una foto de la galería o sacá una con la cámara. Vacío = ícono genérico.</div>
-      <img id="imgPreview" style="display:none; max-width:100%; max-height:120px; margin-top:8px; border-radius:8px;">
-      <input type="hidden" id="formImg">
+    <div class="field"><label>Fotos del producto (hasta 3)</label>
+      <div id="imgThumbs" style="display:flex; gap:8px; margin-bottom:6px;"></div>
+      <input type="file" id="formImgFile" accept="image/*" multiple onchange="handleImageSelect(event)">
+      <div class="field-hint" id="imgUploadHint">Elegí una o varias fotos de la galería o sacá una con la cámara.</div>
+    </div>
+    <div class="field"><label>Video corto (opcional)</label>
+      <video id="videoPreview" controls style="display:none; width:100%; max-height:160px; border-radius:8px; margin-bottom:6px; background:#000;"></video>
+      <button type="button" id="removeVideoBtn" class="btn ghost" style="display:none; margin-bottom:6px;" onclick="removeVideo()">Quitar video</button>
+      <input type="file" id="formVideoFile" accept="video/*" onchange="handleVideoSelect(event)">
+      <div class="field-hint" id="videoUploadHint">Un clip cortito (idealmente menos de 20 segundos). Máximo 25 MB.</div>
+      <input type="hidden" id="formVideo">
     </div>
     <div class="field"><label>Estado</label>
       <div class="radio-row">
@@ -457,7 +473,7 @@ input, select, textarea { font-family: inherit; }
       const total = items.reduce((s,p) => s + Number(p.price), 0);
       list.innerHTML = items.map(p => (
         '<div class="cart-item">' +
-          '<div class="cart-item-img">' + (p.image ? '<img src="' + escHtml(p.image) + '">' : iconFor(p.category)) + '</div>' +
+          '<div class="cart-item-img">' + ((p.images && p.images[0]) ? '<img src="' + escHtml(p.images[0]) + '">' : (p.image ? '<img src="' + escHtml(p.image) + '">' : iconFor(p.category))) + '</div>' +
           '<div><div class="cart-item-name">' + escHtml(p.name) + '</div><div class="cart-item-price">' + money(p.price) + '</div></div>' +
           '<button class="cart-item-remove" onclick="toggleCart(\'' + p.id + '\'); openCart();">✕</button>' +
         '</div>'
@@ -619,8 +635,9 @@ input, select, textarea { font-family: inherit; }
     grid.innerHTML = list.map(p => {
       const sold = p.status === 'vendido';
       const inCart = isInCart(p.id);
-      const imgHtml = p.image
-        ? '<img src="' + escHtml(p.image) + '" alt="' + escHtml(p.name) + '" data-cat="' + escHtml(p.category||'') + '" onerror="imgFallback(this)">'
+      const thumb = (p.images && p.images[0]) ? p.images[0] : p.image;
+      const imgHtml = thumb
+        ? '<img src="' + escHtml(thumb) + '" alt="' + escHtml(p.name) + '" data-cat="' + escHtml(p.category||'') + '" onerror="imgFallback(this)">'
         : iconFor(p.category);
       const isConfirming = confirmingDeleteId === p.id;
 
@@ -657,19 +674,26 @@ input, select, textarea { font-family: inherit; }
     }).join('');
   }
 
+  let detailSlides = [];
+  let detailSlideIndex = 0;
+  let detailSold = false;
+
   window.openDetail = function(id){
     const p = PRODUCTS.find(x => x.id === id);
     if (!p) return;
-    const sold = p.status === 'vendido';
+    detailSold = p.status === 'vendido';
     const inCart = isInCart(p.id);
-    const imgHtml = p.image
-      ? '<img src="' + escHtml(p.image) + '" alt="' + escHtml(p.name) + '" data-cat="' + escHtml(p.category||'') + '" onerror="imgFallback(this)" style="width:100%; height:100%; object-fit:cover;">'
-      : iconFor(p.category);
+
+    detailSlides = [
+      ...((p.images && p.images.length) ? p.images : (p.image ? [p.image] : [])).map(url => ({ type: 'image', url })),
+      ...(p.video ? [{ type: 'video', url: p.video }] : [])
+    ];
+    detailSlideIndex = 0;
 
     document.getElementById('detailContent').innerHTML =
       '<div style="position:relative;">' +
-        '<button class="panel-close" style="position:absolute; top:10px; right:10px; background:#fff; border-radius:999px; width:28px; height:28px; z-index:2;" onclick="closeOverlay(\'detailOverlay\')">✕</button>' +
-        '<div class="card-img" style="height:260px; border-radius:0;">' + imgHtml + '<div class="ribbon">Vendido</div></div>' +
+        '<button class="panel-close" style="position:absolute; top:10px; right:10px; background:#fff; border-radius:999px; width:28px; height:28px; z-index:3;" onclick="closeOverlay(\'detailOverlay\')">✕</button>' +
+        '<div class="carousel-track" id="carouselTrack"></div>' +
       '</div>' +
       '<div style="padding:18px 20px 20px;">' +
         '<div class="card-cat">' + escHtml(p.category || 'Sin categoría') + '</div>' +
@@ -678,7 +702,7 @@ input, select, textarea { font-family: inherit; }
         '<div style="font-size:13.5px; color:#4A3B36; line-height:1.5; white-space:pre-wrap; margin-bottom:16px;">' +
           (p.description ? escHtml(p.description) : '<span style="color:#A9998F; font-style:italic;">Sin descripción todavía.</span>') +
         '</div>' +
-        (sold
+        (detailSold
           ? '<div class="sold-label" style="margin-top:0;">Ya no está disponible</div>'
           : '<button class="cta cta-add ' + (inCart?'in-cart':'') + '" onclick="toggleCart(\'' + p.id + '\'); openDetail(\'' + p.id + '\');">' +
               (inCart
@@ -687,33 +711,119 @@ input, select, textarea { font-family: inherit; }
             '</button>'
         ) +
       '</div>';
+
+    renderCarouselSlide(p.category);
     document.getElementById('detailOverlay').classList.add('show');
   };
 
+  function renderCarouselSlide(category){
+    const track = document.getElementById('carouselTrack');
+    if (!track) return;
+    if (detailSlides.length === 0) {
+      track.innerHTML = '<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; opacity:0.35;">' + iconFor(category) + '</div>' +
+        (detailSold ? '<div class="ribbon">Vendido</div>' : '');
+      return;
+    }
+    const slide = detailSlides[detailSlideIndex];
+    const media = slide.type === 'video'
+      ? '<video src="' + escHtml(slide.url) + '" controls playsinline></video>'
+      : '<img src="' + escHtml(slide.url) + '">';
+    const arrows = detailSlides.length > 1
+      ? '<button class="carousel-arrow" style="left:10px;" onclick="carouselMove(-1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>' +
+        '<button class="carousel-arrow" style="right:10px;" onclick="carouselMove(1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></button>' +
+        '<div class="carousel-dots">' + detailSlides.map((s,i) => '<div class="carousel-dot ' + (i===detailSlideIndex?'active':'') + '"></div>').join('') + '</div>'
+      : '';
+    track.innerHTML = media + arrows + (detailSold ? '<div class="ribbon">Vendido</div>' : '');
+  }
+
+  window.carouselMove = function(dir){
+    detailSlideIndex = (detailSlideIndex + dir + detailSlides.length) % detailSlides.length;
+    renderCarouselSlide();
+  };
+
+  let formImages = [];
+
   window.handleImageSelect = async function(event){
+    const files = Array.from(event.target.files || []);
+    if (files.length === 0) return;
+    const hint = document.getElementById('imgUploadHint');
+    const remaining = 3 - formImages.length;
+    if (remaining <= 0) { showToast('Ya tenés 3 fotos, sacá alguna para agregar otra'); event.target.value = ''; return; }
+    const toUpload = files.slice(0, remaining);
+    if (files.length > remaining) showToast('Solo se subieron ' + remaining + ' foto(s), el máximo es 3');
+
+    for (const file of toUpload) {
+      hint.textContent = 'Subiendo foto...';
+      try {
+        const compressed = await compressImage(file);
+        const path = 'products/' + Date.now() + '-' + Math.random().toString(36).slice(2) + '.jpg';
+        const res = await fetch(SUPABASE_URL + '/storage/v1/object/product-images/' + path, {
+          method: 'POST',
+          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'image/jpeg' },
+          body: compressed
+        });
+        if (!res.ok) throw new Error('No se pudo subir la foto');
+        const publicUrl = SUPABASE_URL + '/storage/v1/object/public/product-images/' + path;
+        formImages.push(publicUrl);
+      } catch (err) {
+        console.error(err);
+        showToast('No se pudo subir una de las fotos');
+      }
+    }
+    hint.textContent = 'Elegí una o varias fotos de la galería o sacá una con la cámara.';
+    renderThumbs();
+    event.target.value = '';
+  };
+
+  function renderThumbs(){
+    document.getElementById('imgThumbs').innerHTML = formImages.map((url, i) =>
+      '<div class="thumb"><img src="' + escHtml(url) + '"><button type="button" class="thumb-remove" onclick="removeThumb(' + i + ')">✕</button></div>'
+    ).join('');
+    document.getElementById('formImgFile').disabled = formImages.length >= 3;
+  }
+  window.removeThumb = function(i){
+    formImages.splice(i, 1);
+    renderThumbs();
+  };
+
+  window.handleVideoSelect = async function(event){
     const file = event.target.files[0];
     if (!file) return;
-    const hint = document.getElementById('imgUploadHint');
-    hint.textContent = 'Subiendo foto...';
+    if (file.size > 25 * 1024 * 1024) {
+      showToast('El video pesa más de 25 MB, probá con uno más corto');
+      event.target.value = '';
+      return;
+    }
+    const hint = document.getElementById('videoUploadHint');
+    hint.textContent = 'Subiendo video...';
     try {
-      const compressed = await compressImage(file);
-      const path = 'products/' + Date.now() + '-' + Math.random().toString(36).slice(2) + '.jpg';
+      const ext = (file.name.split('.').pop() || 'mp4').toLowerCase();
+      const path = 'products/' + Date.now() + '-' + Math.random().toString(36).slice(2) + '.' + ext;
       const res = await fetch(SUPABASE_URL + '/storage/v1/object/product-images/' + path, {
         method: 'POST',
-        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'image/jpeg' },
-        body: compressed
+        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': file.type || 'video/mp4' },
+        body: file
       });
-      if (!res.ok) throw new Error('No se pudo subir la foto');
+      if (!res.ok) throw new Error('No se pudo subir el video');
       const publicUrl = SUPABASE_URL + '/storage/v1/object/public/product-images/' + path;
-      document.getElementById('formImg').value = publicUrl;
-      document.getElementById('imgPreview').src = publicUrl;
-      document.getElementById('imgPreview').style.display = 'block';
-      hint.textContent = '✅ Foto subida.';
+      document.getElementById('formVideo').value = publicUrl;
+      document.getElementById('videoPreview').src = publicUrl;
+      document.getElementById('videoPreview').style.display = 'block';
+      document.getElementById('removeVideoBtn').style.display = 'block';
+      hint.textContent = '✅ Video subido.';
     } catch (err) {
-      hint.textContent = '❌ No se pudo subir la foto. Probá de nuevo.';
+      hint.textContent = '❌ No se pudo subir el video. Probá de nuevo.';
       console.error(err);
     }
   };
+  window.removeVideo = function(){
+    document.getElementById('formVideo').value = '';
+    document.getElementById('videoPreview').style.display = 'none';
+    document.getElementById('videoPreview').src = '';
+    document.getElementById('removeVideoBtn').style.display = 'none';
+    document.getElementById('videoUploadHint').textContent = 'Un clip cortito (idealmente menos de 20 segundos). Máximo 25 MB.';
+  };
+
   function compressImage(file){
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -791,6 +901,7 @@ input, select, textarea { font-family: inherit; }
   window.openForm = function(id){
     document.getElementById('formId').value = id || '';
     document.getElementById('formImgFile').value = '';
+    document.getElementById('formVideoFile').value = '';
     if (id) {
       const p = PRODUCTS.find(x => x.id === id);
       document.getElementById('formTitle').textContent = 'Editar producto';
@@ -798,10 +909,18 @@ input, select, textarea { font-family: inherit; }
       document.getElementById('formPrice').value = p.price;
       document.getElementById('formCat').value = p.category || '';
       document.getElementById('formDesc').value = p.description || '';
-      document.getElementById('formImg').value = p.image || '';
-      document.getElementById('imgUploadHint').textContent = 'Elegí una foto de la galería o sacá una con la cámara. Vacío = ícono genérico.';
-      if (p.image) { document.getElementById('imgPreview').src = p.image; document.getElementById('imgPreview').style.display = 'block'; }
-      else document.getElementById('imgPreview').style.display = 'none';
+      formImages = (p.images && p.images.length) ? [...p.images] : (p.image ? [p.image] : []);
+      renderThumbs();
+      document.getElementById('imgUploadHint').textContent = 'Elegí una o varias fotos de la galería o sacá una con la cámara.';
+      document.getElementById('formVideo').value = p.video || '';
+      if (p.video) {
+        document.getElementById('videoPreview').src = p.video;
+        document.getElementById('videoPreview').style.display = 'block';
+        document.getElementById('removeVideoBtn').style.display = 'block';
+      } else {
+        document.getElementById('videoPreview').style.display = 'none';
+        document.getElementById('removeVideoBtn').style.display = 'none';
+      }
       document.querySelector('input[name=formStatus][value="' + p.status + '"]').checked = true;
     } else {
       document.getElementById('formTitle').textContent = 'Nuevo producto';
@@ -809,9 +928,12 @@ input, select, textarea { font-family: inherit; }
       document.getElementById('formPrice').value = '';
       document.getElementById('formCat').value = '';
       document.getElementById('formDesc').value = '';
-      document.getElementById('formImg').value = '';
-      document.getElementById('imgUploadHint').textContent = 'Elegí una foto de la galería o sacá una con la cámara. Vacío = ícono genérico.';
-      document.getElementById('imgPreview').style.display = 'none';
+      formImages = [];
+      renderThumbs();
+      document.getElementById('imgUploadHint').textContent = 'Elegí una o varias fotos de la galería o sacá una con la cámara.';
+      document.getElementById('formVideo').value = '';
+      document.getElementById('videoPreview').style.display = 'none';
+      document.getElementById('removeVideoBtn').style.display = 'none';
       document.querySelector('input[name=formStatus][value="disponible"]').checked = true;
     }
     document.getElementById('formOverlay').classList.add('show');
@@ -823,15 +945,16 @@ input, select, textarea { font-family: inherit; }
     const price = document.getElementById('formPrice').value;
     const category = document.getElementById('formCat').value.trim();
     const description = document.getElementById('formDesc').value.trim();
-    const image = document.getElementById('formImg').value.trim();
+    const images = formImages;
+    const video = document.getElementById('formVideo').value.trim();
     const status = document.querySelector('input[name=formStatus]:checked').value;
     if (!name || !price) { showToast('Completá al menos nombre y precio'); return; }
     try {
       if (id) {
-        const { product } = await callAdmin('updateProduct', { id, name, price, category, description, image, status });
+        const { product } = await callAdmin('updateProduct', { id, name, price, category, description, images, video, status });
         PRODUCTS = PRODUCTS.map(p => p.id === id ? product : p);
       } else {
-        const { product } = await callAdmin('createProduct', { name, price, category, description, image, status });
+        const { product } = await callAdmin('createProduct', { name, price, category, description, images, video, status });
         PRODUCTS.unshift(product);
       }
       closeOverlay('formOverlay');
