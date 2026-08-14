@@ -36,7 +36,6 @@ input, select, textarea { font-family: inherit; }
 
 .banner { background: #FCEFD9; border-bottom: 1px solid #EBD9AE; color: #6B4F16; font-size: 12.5px; padding: 10px 24px; display: none; align-items: center; gap: 8px; justify-content: center; }
 .banner.show { display: flex; }
-.banner button { background: none; border: none; color: #8A5A0E; font-weight: 600; text-decoration: underline; padding: 0; font-size: inherit; }
 
 .body { padding: 20px 24px 110px; max-width: 1100px; margin: 0 auto; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 18px; }
@@ -64,22 +63,6 @@ input, select, textarea { font-family: inherit; }
 .cta:disabled { background: #C9BFB6; color: #fff; cursor: not-allowed; }
 .sold-label { margin-top: 10px; text-align: center; font-size: 12px; color: #A98F86; font-style: italic; }
 
-.admin-bar { display: none; gap: 6px; padding: 8px 14px 0 18px; }
-.card.admin-on .admin-bar { display: flex; }
-.icon-btn { border: 1px solid #DCD0C6; background: #fff; border-radius: 6px; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; }
-.icon-btn svg { width: 13px; height: 13px; color: #241318; }
-.icon-btn.danger:hover { background: #F4DEE1; border-color: #9C4A5C; }
-.icon-btn.toggle.is-avail { color: #4C7A5B; }
-.confirm-del { display: flex; gap: 6px; align-items: center; font-size: 11px; color: #7C3A49; }
-.confirm-del button { border: none; background: none; font-weight: 700; padding: 2px 4px; }
-
-.fab-row { position: fixed; right: 20px; bottom: 20px; display: flex; flex-direction: column; gap: 10px; align-items: flex-end; z-index: 5; }
-.fab { border: none; border-radius: 999px; padding: 11px 18px; font-size: 12.5px; font-weight: 600; display: flex; align-items: center; gap: 7px; box-shadow: 0 6px 18px rgba(46,26,36,0.22); }
-.fab svg { width: 14px; height: 14px; }
-.fab.primary { background: #9C4A5C; color: #fff; }
-.fab.primary:hover { background: #7C3A49; }
-.fab.ghost { background: #fff; color: #241318; border: 1px solid #DCD0C6; }
-
 .wsp-float { position: fixed; left: 20px; bottom: 20px; z-index: 5; background: #25D366; color: #fff; border: none; border-radius: 999px; width: 54px; height: 54px; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(37,211,102,0.4); }
 .wsp-float svg { width: 26px; height: 26px; }
 
@@ -99,11 +82,6 @@ input, select, textarea { font-family: inherit; }
 .carousel-dots { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; z-index: 2; }
 .carousel-dot { width: 6px; height: 6px; border-radius: 999px; background: rgba(255,255,255,0.6); }
 .carousel-dot.active { background: #fff; }
-.thumb { position: relative; width: 60px; height: 60px; border-radius: 8px; overflow: hidden; background: #EFE6DC; flex-shrink: 0; }
-.thumb img { width: 100%; height: 100%; object-fit: cover; }
-.thumb .thumb-remove { position: absolute; top: 2px; right: 2px; background: rgba(36,19,24,0.7); color: #fff; border: none; border-radius: 999px; width: 18px; height: 18px; font-size: 11px; line-height: 1; display: flex; align-items: center; justify-content: center; }
-.radio-row { display: flex; gap: 14px; }
-.radio-row label { display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 500; }
 .ship-options { display: flex; flex-direction: column; gap: 8px; }
 .ship-option { display: flex; align-items: flex-start; gap: 10px; border: 1px solid #DCD0C6; border-radius: 10px; padding: 11px 12px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
 .ship-option:hover { border-color: #C9A9AF; }
@@ -118,8 +96,6 @@ input, select, textarea { font-family: inherit; }
 .btn.primary:disabled { background: #C9BFB6; }
 .btn.ghost { background: #F1E9E3; color: #241318; }
 .panel-close { float: right; background: none; border: none; font-size: 18px; color: #A9998F; }
-.pin-dots { display: flex; gap: 10px; justify-content: center; margin: 18px 0; }
-.pin-dots input { width: 42px; height: 50px; text-align: center; font-size: 22px; border: 1px solid #DCD0C6; border-radius: 8px; }
 
 .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(10px); background: #2E1A24; color: #F3E9E0; padding: 10px 18px; border-radius: 8px; font-size: 12.5px; opacity: 0; transition: opacity 0.2s, transform 0.2s; z-index: 30; pointer-events: none; max-width: 90vw; text-align: center; }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -166,112 +142,20 @@ input, select, textarea { font-family: inherit; }
   <div class="chips" id="chips"></div>
 </div>
 
-<div class="banner" id="banner">
-  ⚠️ Falta configurar el número de WhatsApp.
-  <button onclick="openSettings()">Configurar ahora</button>
-</div>
+<div class="banner" id="banner">⚠️ Este catálogo todavía no tiene WhatsApp configurado.</div>
 
 <div class="body">
   <div id="loading" class="loading">Cargando catálogo...</div>
   <div class="grid" id="grid" style="display:none;"></div>
   <div class="empty" id="empty" style="display:none;">
     <span class="serif">No hay productos por acá</span>
-    Probá con otra búsqueda o agregá el primer producto.
+    Probá con otra búsqueda.
   </div>
 </div>
 
 <button class="wsp-float" id="wspFloat" style="display:none;" onclick="openWhatsapp()" title="Consultanos por WhatsApp">
   <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2Zm5.7 14.2c-.2.6-1.3 1.2-1.9 1.3-.5.1-1.1.1-1.8-.1-.4-.1-.9-.3-1.6-.6-2.7-1.2-4.5-3.9-4.6-4.1-.1-.2-1.1-1.5-1.1-2.8 0-1.3.7-2 1-2.2.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .6.5.2.5.7 1.8.8 1.9.1.2.1.4 0 .6-.1.2-.2.3-.3.5-.2.2-.3.3-.5.5-.2.2-.3.4-.1.7.2.3.9 1.5 1.9 2.4 1.3 1.2 2.4 1.5 2.7 1.7.3.2.5.1.7-.1.2-.2.8-.9 1-1.2.2-.3.4-.2.7-.1.3.1 1.8.9 2.1 1 .3.2.5.2.6.3.1.2.1.7-.1 1.3Z"/></svg>
 </button>
-
-<div class="fab-row">
-  <button class="fab ghost" id="adminToggle" onclick="handleAdminToggle()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-    <span id="adminLabel">Editar catálogo</span>
-  </button>
-  <button class="fab ghost" id="ordersBtn" style="display:none;" onclick="openOrders()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 2h6a2 2 0 0 1 2 2v18l-5-3-5 3V4a2 2 0 0 1 2-2Z"/></svg>
-    Pedidos
-  </button>
-  <button class="fab ghost" id="settingsBtn" style="display:none;" onclick="openSettings()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9M4.6 9a1.7 1.7 0 0 0-.3-1.9"/></svg>
-    Ajustes
-  </button>
-  <button class="fab primary" id="addBtn" style="display:none;" onclick="openForm()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-    Agregar producto
-  </button>
-</div>
-
-<div class="overlay" id="pinOverlay">
-  <div class="panel" style="max-width:300px; text-align:center;">
-    <button class="panel-close" onclick="closeOverlay('pinOverlay')">✕</button>
-    <h3>Ingresá el PIN</h3>
-    <div class="pin-dots">
-      <input maxlength="1" inputmode="numeric" class="pinDigit">
-      <input maxlength="1" inputmode="numeric" class="pinDigit">
-      <input maxlength="1" inputmode="numeric" class="pinDigit">
-      <input maxlength="1" inputmode="numeric" class="pinDigit">
-    </div>
-    <button class="btn primary" style="width:100%;" onclick="checkPin()">Entrar</button>
-  </div>
-</div>
-
-<div class="overlay" id="formOverlay">
-  <div class="panel">
-    <button class="panel-close" onclick="closeOverlay('formOverlay')">✕</button>
-    <h3 id="formTitle">Nuevo producto</h3>
-    <input type="hidden" id="formId">
-    <div class="field"><label>Nombre del producto</label><input id="formName" placeholder="Ej: Cartera de cuero símil"></div>
-    <div class="field"><label>Precio (ARS)</label><input id="formPrice" type="number" placeholder="Ej: 24000"></div>
-    <div class="field"><label>Categoría</label><input id="formCat" list="catList" placeholder="Ej: Bolsos"><datalist id="catList"></datalist></div>
-    <div class="field"><label>Descripción (opcional)</label><textarea id="formDesc" rows="3" placeholder="Material, medidas, detalles..."></textarea></div>
-    <div class="field"><label>Fotos del producto (hasta 3)</label>
-      <div id="imgThumbs" style="display:flex; gap:8px; margin-bottom:6px;"></div>
-      <input type="file" id="formImgFile" accept="image/*" multiple onchange="handleImageSelect(event)">
-      <div class="field-hint" id="imgUploadHint">Elegí una o varias fotos de la galería o sacá una con la cámara.</div>
-    </div>
-    <div class="field"><label>Video corto (opcional)</label>
-      <video id="videoPreview" controls style="display:none; width:100%; max-height:160px; border-radius:8px; margin-bottom:6px; background:#000;"></video>
-      <button type="button" id="removeVideoBtn" class="btn ghost" style="display:none; margin-bottom:6px;" onclick="removeVideo()">Quitar video</button>
-      <input type="file" id="formVideoFile" accept="video/*" onchange="handleVideoSelect(event)">
-      <div class="field-hint" id="videoUploadHint">Un clip cortito (idealmente menos de 20 segundos). Máximo 25 MB.</div>
-      <input type="hidden" id="formVideo">
-    </div>
-    <div class="field"><label>Estado</label>
-      <div class="radio-row">
-        <label><input type="radio" name="formStatus" value="disponible" checked> Disponible</label>
-        <label><input type="radio" name="formStatus" value="vendido"> Vendido</label>
-      </div>
-    </div>
-    <div class="panel-actions">
-      <button class="btn ghost" onclick="closeOverlay('formOverlay')">Cancelar</button>
-      <button class="btn primary" onclick="saveProduct()">Guardar</button>
-    </div>
-  </div>
-</div>
-
-<div class="overlay" id="settingsOverlay">
-  <div class="panel">
-    <button class="panel-close" onclick="closeOverlay('settingsOverlay')">✕</button>
-    <h3>Ajustes de la tienda</h3>
-    <div class="field"><label>Nombre de la marca</label><input id="setName"></div>
-    <div class="field"><label>Frase debajo del nombre</label><input id="setTagline"></div>
-    <div class="field"><label>WhatsApp (con código de país, sin +, sin espacios)</label><input id="setWsp" placeholder="Ej: 5493511234567"></div>
-    <div class="panel-actions">
-      <button class="btn ghost" onclick="closeOverlay('settingsOverlay')">Cancelar</button>
-      <button class="btn primary" onclick="saveSettings()">Guardar</button>
-    </div>
-  </div>
-</div>
-
-<div class="overlay" id="ordersOverlay">
-  <div class="panel" style="max-width:520px;">
-    <button class="panel-close" onclick="closeOverlay('ordersOverlay')">✕</button>
-    <h3>Pedidos</h3>
-    <div id="ordersList" style="font-size:13px;"></div>
-  </div>
-</div>
 
 <div class="overlay" id="cartOverlay">
   <div class="panel">
@@ -360,11 +244,8 @@ input, select, textarea { font-family: inherit; }
 
   let PRODUCTS = [];
   let SETTINGS = { store_name: 'xiomara.accs', tagline: '', whatsapp: '' };
-  let isAdmin = false;
-  let adminPin = null;
   let searchTerm = '';
   let activeCat = 'Todos';
-  let confirmingDeleteId = null;
   let CART = [];
   let checkoutStep = 1;
 
@@ -616,8 +497,6 @@ input, select, textarea { font-family: inherit; }
       btn.onclick = () => { activeCat = btn.dataset.cat; render(); };
     });
 
-    document.getElementById('catList').innerHTML = cats.filter(c => c !== 'Todos').map(c => '<option value="' + escHtml(c) + '">').join('');
-
     let list = PRODUCTS.filter(p => {
       const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCat = activeCat === 'Todos' || p.category === activeCat;
@@ -639,21 +518,10 @@ input, select, textarea { font-family: inherit; }
       const imgHtml = thumb
         ? '<img src="' + escHtml(thumb) + '" alt="' + escHtml(p.name) + '" data-cat="' + escHtml(p.category||'') + '" onerror="imgFallback(this)">'
         : iconFor(p.category);
-      const isConfirming = confirmingDeleteId === p.id;
 
       return '' +
-      '<div class="card ' + (sold?'sold':'') + ' ' + (isAdmin?'admin-on':'') + '">' +
+      '<div class="card ' + (sold?'sold':'') + '">' +
         '<div class="tag-hole"></div>' +
-        '<div class="admin-bar">' +
-          (isConfirming
-            ? '<div class="confirm-del">¿Borrar? <button onclick="deleteProduct(\'' + p.id + '\')">Sí</button><button onclick="cancelDelete()">No</button></div>'
-            : '<button class="icon-btn toggle ' + (!sold?'is-avail':'') + '" title="Cambiar estado" onclick="toggleStatus(\'' + p.id + '\',\'' + (sold?'disponible':'vendido') + '\')">' +
-                (sold ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>') +
-              '</button>' +
-              '<button class="icon-btn" title="Editar" onclick="openForm(\'' + p.id + '\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>' +
-              '<button class="icon-btn danger" title="Eliminar" onclick="confirmDelete(\'' + p.id + '\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0-1 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 6"/></svg></button>'
-          ) +
-        '</div>' +
         '<div class="card-img" onclick="openDetail(\'' + p.id + '\')" style="cursor:pointer;">' + imgHtml + '<div class="ribbon">Vendido</div></div>' +
         '<div class="card-body">' +
           '<div onclick="openDetail(\'' + p.id + '\')" style="cursor:pointer;">' +
@@ -741,323 +609,7 @@ input, select, textarea { font-family: inherit; }
     renderCarouselSlide();
   };
 
-  let formImages = [];
-
-  window.handleImageSelect = async function(event){
-    const files = Array.from(event.target.files || []);
-    if (files.length === 0) return;
-    const hint = document.getElementById('imgUploadHint');
-    const remaining = 3 - formImages.length;
-    if (remaining <= 0) { showToast('Ya tenés 3 fotos, sacá alguna para agregar otra'); event.target.value = ''; return; }
-    const toUpload = files.slice(0, remaining);
-    if (files.length > remaining) showToast('Solo se subieron ' + remaining + ' foto(s), el máximo es 3');
-
-    for (const file of toUpload) {
-      hint.textContent = 'Subiendo foto...';
-      try {
-        const compressed = await compressImage(file);
-        const path = 'products/' + Date.now() + '-' + Math.random().toString(36).slice(2) + '.jpg';
-        const res = await fetch(SUPABASE_URL + '/storage/v1/object/product-images/' + path, {
-          method: 'POST',
-          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'image/jpeg' },
-          body: compressed
-        });
-        if (!res.ok) throw new Error('No se pudo subir la foto');
-        const publicUrl = SUPABASE_URL + '/storage/v1/object/public/product-images/' + path;
-        formImages.push(publicUrl);
-      } catch (err) {
-        console.error(err);
-        showToast('No se pudo subir una de las fotos');
-      }
-    }
-    hint.textContent = 'Elegí una o varias fotos de la galería o sacá una con la cámara.';
-    renderThumbs();
-    event.target.value = '';
-  };
-
-  function renderThumbs(){
-    document.getElementById('imgThumbs').innerHTML = formImages.map((url, i) =>
-      '<div class="thumb"><img src="' + escHtml(url) + '"><button type="button" class="thumb-remove" onclick="removeThumb(' + i + ')">✕</button></div>'
-    ).join('');
-    document.getElementById('formImgFile').disabled = formImages.length >= 3;
-  }
-  window.removeThumb = function(i){
-    formImages.splice(i, 1);
-    renderThumbs();
-  };
-
-  window.handleVideoSelect = async function(event){
-    const file = event.target.files[0];
-    if (!file) return;
-    if (file.size > 25 * 1024 * 1024) {
-      showToast('El video pesa más de 25 MB, probá con uno más corto');
-      event.target.value = '';
-      return;
-    }
-    const hint = document.getElementById('videoUploadHint');
-    hint.textContent = 'Subiendo video...';
-    try {
-      const ext = (file.name.split('.').pop() || 'mp4').toLowerCase();
-      const path = 'products/' + Date.now() + '-' + Math.random().toString(36).slice(2) + '.' + ext;
-      const res = await fetch(SUPABASE_URL + '/storage/v1/object/product-images/' + path, {
-        method: 'POST',
-        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': file.type || 'video/mp4' },
-        body: file
-      });
-      if (!res.ok) throw new Error('No se pudo subir el video');
-      const publicUrl = SUPABASE_URL + '/storage/v1/object/public/product-images/' + path;
-      document.getElementById('formVideo').value = publicUrl;
-      document.getElementById('videoPreview').src = publicUrl;
-      document.getElementById('videoPreview').style.display = 'block';
-      document.getElementById('removeVideoBtn').style.display = 'block';
-      hint.textContent = '✅ Video subido.';
-    } catch (err) {
-      hint.textContent = '❌ No se pudo subir el video. Probá de nuevo.';
-      console.error(err);
-    }
-  };
-  window.removeVideo = function(){
-    document.getElementById('formVideo').value = '';
-    document.getElementById('videoPreview').style.display = 'none';
-    document.getElementById('videoPreview').src = '';
-    document.getElementById('removeVideoBtn').style.display = 'none';
-    document.getElementById('videoUploadHint').textContent = 'Un clip cortito (idealmente menos de 20 segundos). Máximo 25 MB.';
-  };
-
-  function compressImage(file){
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      const reader = new FileReader();
-      reader.onload = (e) => { img.src = e.target.result; };
-      reader.onerror = reject;
-      img.onload = () => {
-        const maxWidth = 1000;
-        const scale = Math.min(1, maxWidth / img.width);
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width * scale;
-        canvas.height = img.height * scale;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.8);
-      };
-      img.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  }
-
-  window.handleAdminToggle = function(){
-    if (isAdmin) {
-      isAdmin = false; adminPin = null;
-      document.getElementById('adminLabel').textContent = 'Editar catálogo';
-      document.getElementById('addBtn').style.display = 'none';
-      document.getElementById('settingsBtn').style.display = 'none';
-      document.getElementById('ordersBtn').style.display = 'none';
-      render();
-      return;
-    }
-    document.getElementById('pinOverlay').classList.add('show');
-    const digits = document.querySelectorAll('.pinDigit');
-    digits.forEach(d => d.value = '');
-    digits[0].focus();
-    digits.forEach((d,i) => { d.oninput = () => { if (d.value && digits[i+1]) digits[i+1].focus(); }; });
-  };
-
-  window.checkPin = async function(){
-    const digits = document.querySelectorAll('.pinDigit');
-    const entered = Array.from(digits).map(d => d.value).join('');
-    try {
-      const res = await fetch('/.netlify/functions/admin-products', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin: entered, action: 'updateSettings', data: SETTINGS })
-      });
-      if (!res.ok) throw new Error();
-      adminPin = entered;
-      isAdmin = true;
-      document.getElementById('adminLabel').textContent = 'Salir de edición';
-      document.getElementById('addBtn').style.display = 'flex';
-      document.getElementById('settingsBtn').style.display = 'flex';
-      document.getElementById('ordersBtn').style.display = 'flex';
-      closeOverlay('pinOverlay');
-      render();
-    } catch {
-      showToast('PIN incorrecto');
-    }
-  };
-
   window.closeOverlay = function(id){ document.getElementById(id).classList.remove('show'); };
-
-  async function callAdmin(action, data){
-    const res = await fetch('/.netlify/functions/admin-products', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pin: adminPin, action, data })
-    });
-    const result = await res.json();
-    if (!res.ok) throw new Error(result.error || 'Error');
-    return result;
-  }
-
-  window.openForm = function(id){
-    document.getElementById('formId').value = id || '';
-    document.getElementById('formImgFile').value = '';
-    document.getElementById('formVideoFile').value = '';
-    if (id) {
-      const p = PRODUCTS.find(x => x.id === id);
-      document.getElementById('formTitle').textContent = 'Editar producto';
-      document.getElementById('formName').value = p.name;
-      document.getElementById('formPrice').value = p.price;
-      document.getElementById('formCat').value = p.category || '';
-      document.getElementById('formDesc').value = p.description || '';
-      formImages = (p.images && p.images.length) ? [...p.images] : (p.image ? [p.image] : []);
-      renderThumbs();
-      document.getElementById('imgUploadHint').textContent = 'Elegí una o varias fotos de la galería o sacá una con la cámara.';
-      document.getElementById('formVideo').value = p.video || '';
-      if (p.video) {
-        document.getElementById('videoPreview').src = p.video;
-        document.getElementById('videoPreview').style.display = 'block';
-        document.getElementById('removeVideoBtn').style.display = 'block';
-      } else {
-        document.getElementById('videoPreview').style.display = 'none';
-        document.getElementById('removeVideoBtn').style.display = 'none';
-      }
-      document.querySelector('input[name=formStatus][value="' + p.status + '"]').checked = true;
-    } else {
-      document.getElementById('formTitle').textContent = 'Nuevo producto';
-      document.getElementById('formName').value = '';
-      document.getElementById('formPrice').value = '';
-      document.getElementById('formCat').value = '';
-      document.getElementById('formDesc').value = '';
-      formImages = [];
-      renderThumbs();
-      document.getElementById('imgUploadHint').textContent = 'Elegí una o varias fotos de la galería o sacá una con la cámara.';
-      document.getElementById('formVideo').value = '';
-      document.getElementById('videoPreview').style.display = 'none';
-      document.getElementById('removeVideoBtn').style.display = 'none';
-      document.querySelector('input[name=formStatus][value="disponible"]').checked = true;
-    }
-    document.getElementById('formOverlay').classList.add('show');
-  };
-
-  window.saveProduct = async function(){
-    const id = document.getElementById('formId').value;
-    const name = document.getElementById('formName').value.trim();
-    const price = document.getElementById('formPrice').value;
-    const category = document.getElementById('formCat').value.trim();
-    const description = document.getElementById('formDesc').value.trim();
-    const images = formImages;
-    const video = document.getElementById('formVideo').value.trim();
-    const status = document.querySelector('input[name=formStatus]:checked').value;
-    if (!name || !price) { showToast('Completá al menos nombre y precio'); return; }
-    try {
-      if (id) {
-        const { product } = await callAdmin('updateProduct', { id, name, price, category, description, images, video, status });
-        PRODUCTS = PRODUCTS.map(p => p.id === id ? product : p);
-      } else {
-        const { product } = await callAdmin('createProduct', { name, price, category, description, images, video, status });
-        PRODUCTS.unshift(product);
-      }
-      closeOverlay('formOverlay');
-      render();
-      showToast('Producto guardado');
-    } catch (e) { showToast(e.message); }
-  };
-
-  window.toggleStatus = async function(id, newStatus){
-    try {
-      const { product } = await callAdmin('toggleStatus', { id, status: newStatus });
-      PRODUCTS = PRODUCTS.map(p => p.id === id ? product : p);
-      render();
-    } catch (e) { showToast(e.message); }
-  };
-
-  window.confirmDelete = function(id){ confirmingDeleteId = id; render(); };
-  window.cancelDelete = function(){ confirmingDeleteId = null; render(); };
-  window.deleteProduct = async function(id){
-    try {
-      await callAdmin('deleteProduct', { id });
-      PRODUCTS = PRODUCTS.filter(p => p.id !== id);
-      confirmingDeleteId = null;
-      render();
-      showToast('Producto eliminado');
-    } catch (e) { showToast(e.message); }
-  };
-
-  window.openSettings = function(){
-    document.getElementById('setName').value = SETTINGS.store_name || '';
-    document.getElementById('setTagline').value = SETTINGS.tagline || '';
-    document.getElementById('setWsp').value = SETTINGS.whatsapp || '';
-    document.getElementById('settingsOverlay').classList.add('show');
-  };
-  window.saveSettings = async function(){
-    const store_name = document.getElementById('setName').value.trim() || 'Mi tienda';
-    const tagline = document.getElementById('setTagline').value.trim();
-    const whatsapp = document.getElementById('setWsp').value.trim();
-    try {
-      const { settings } = await callAdmin('updateSettings', { store_name, tagline, whatsapp });
-      SETTINGS = settings;
-      closeOverlay('settingsOverlay');
-      render();
-      showToast('Ajustes guardados');
-    } catch (e) { showToast(e.message); }
-  };
-
-  window.openOrders = async function(){
-    document.getElementById('ordersOverlay').classList.add('show');
-    document.getElementById('ordersList').innerHTML = 'Cargando...';
-    try {
-      const res = await fetch('/.netlify/functions/admin-products', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin: adminPin, action: 'listOrders', data: {} })
-      });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error);
-      renderOrders(result.orders);
-    } catch (e) {
-      document.getElementById('ordersList').textContent = 'No se pudieron cargar los pedidos.';
-    }
-  };
-
-  function renderOrders(orders){
-    const list = document.getElementById('ordersList');
-    if (!orders || orders.length === 0) {
-      list.innerHTML = '<p style="color:#8A7268;">Todavía no hay pedidos.</p>';
-      return;
-    }
-    const payBadge = { pendiente: '⏳ Pago pendiente', aprobado: '✅ Pagado', rechazado: '❌ Rechazado' };
-    const shipLabel = { correo: '📮 Correo Argentino', uber: '🚗 Uber (circunvalación)', retiro: '💬 A coordinar por WhatsApp' };
-    list.innerHTML = orders.map(o => {
-      const items = (o.order_items || []).map(i => escHtml(i.product_name) + ' (' + money(i.product_price) + ')').join(', ');
-      return (
-      '<div style="border:1px solid #DCD0C6; border-radius:10px; padding:12px; margin-bottom:10px;">' +
-        '<div style="display:flex; justify-content:space-between; gap:8px;">' +
-          '<strong>' + money(o.total) + '</strong>' +
-          '<span>' + (payBadge[o.payment_status] || o.payment_status) + '</span>' +
-        '</div>' +
-        '<div style="color:#6B5850; margin-top:4px;">' +
-          items + '<br>' +
-          escHtml(o.buyer_name) + ' · ' + escHtml(o.buyer_phone) + '<br>' +
-          'Envío: ' + (shipLabel[o.shipping_method] || o.shipping_method) +
-          (o.shipping_address ? '<br>' + escHtml(o.shipping_address) : '') +
-          (o.shipping_postal_code ? ' (CP ' + escHtml(o.shipping_postal_code) + ')' : '') +
-        '</div>' +
-        '<div style="margin-top:8px;">' +
-          '<label style="display:flex; align-items:center; gap:6px; font-size:12px;">' +
-            '<input type="checkbox" ' + (o.shipping_status === 'enviado' ? 'checked' : '') + ' onchange="toggleShipped(\'' + o.id + '\', this.checked)">' +
-            'Ya lo envié' +
-          '</label>' +
-        '</div>' +
-      '</div>');
-    }).join('');
-  }
-
-  window.toggleShipped = async function(id, checked){
-    try {
-      await callAdmin('updateShippingStatus', { id, shipping_status: checked ? 'enviado' : 'pendiente' });
-      showToast('Actualizado');
-    } catch (e) { showToast(e.message); }
-  };
 
   document.getElementById('searchInput').addEventListener('input', (e) => { searchTerm = e.target.value; render(); });
 
