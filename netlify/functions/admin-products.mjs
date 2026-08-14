@@ -131,6 +131,14 @@ export async function handler(event) {
         return { statusCode: 200, body: JSON.stringify({ order: row }) };
       }
 
+      case 'deleteOrder': {
+        const { id } = data;
+        if (!id) return { statusCode: 400, body: JSON.stringify({ error: 'Falta id' }) };
+        const { error } = await supabase.from('orders').delete().eq('id', id);
+        if (error) throw error;
+        return { statusCode: 200, body: JSON.stringify({ ok: true }) };
+      }
+
       default:
         return { statusCode: 400, body: JSON.stringify({ error: 'Acción desconocida' }) };
     }
