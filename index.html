@@ -215,6 +215,7 @@ input, select, textarea { font-family: inherit; }
     <div class="field"><label>Nombre del producto</label><input id="formName" placeholder="Ej: Cartera de cuero símil"></div>
     <div class="field"><label>Precio (ARS)</label><input id="formPrice" type="number" placeholder="Ej: 24000"></div>
     <div class="field"><label>Categoría</label><input id="formCat" list="catList" placeholder="Ej: Bolsos"><datalist id="catList"></datalist></div>
+    <div class="field"><label>Descripción (opcional)</label><textarea id="formDesc" rows="3" placeholder="Material, medidas, detalles..."></textarea></div>
     <div class="field"><label>Foto del producto</label>
       <input type="file" id="formImgFile" accept="image/*" onchange="handleImageSelect(event)">
       <div class="field-hint" id="imgUploadHint">Elegí una foto de la galería o sacá una con la cámara. Vacío = ícono genérico.</div>
@@ -326,6 +327,12 @@ input, select, textarea { font-family: inherit; }
       <button class="btn ghost" id="checkoutBackBtn" onclick="checkoutBack()">Atrás</button>
       <button class="btn primary" id="checkoutNextBtn" onclick="checkoutNext()">Siguiente</button>
     </div>
+  </div>
+</div>
+
+<div class="overlay" id="detailOverlay">
+  <div class="panel" id="detailPanel" style="max-width:420px; padding:0; overflow:hidden;">
+    <div id="detailContent"></div>
   </div>
 </div>
 
@@ -630,11 +637,13 @@ input, select, textarea { font-family: inherit; }
               '<button class="icon-btn danger" title="Eliminar" onclick="confirmDelete(\'' + p.id + '\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0-1 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 6"/></svg></button>'
           ) +
         '</div>' +
-        '<div class="card-img">' + imgHtml + '<div class="ribbon">Vendido</div></div>' +
+        '<div class="card-img" onclick="openDetail(\'' + p.id + '\')" style="cursor:pointer;">' + imgHtml + '<div class="ribbon">Vendido</div></div>' +
         '<div class="card-body">' +
-          '<div class="card-cat">' + escHtml(p.category || 'Sin categoría') + '</div>' +
-          '<div class="card-name">' + escHtml(p.name) + '</div>' +
-          '<div class="card-price">' + money(p.price) + '</div>' +
+          '<div onclick="openDetail(\'' + p.id + '\')" style="cursor:pointer;">' +
+            '<div class="card-cat">' + escHtml(p.category || 'Sin categoría') + '</div>' +
+            '<div class="card-name">' + escHtml(p.name) + '</div>' +
+            '<div class="card-price">' + money(p.price) + '</div>' +
+          '</div>' +
           (sold
             ? '<div class="sold-label">Ya no está disponible</div>'
             : '<button class="cta cta-add ' + (inCart?'in-cart':'') + '" onclick="toggleCart(\'' + p.id + '\')">' +
@@ -647,6 +656,39 @@ input, select, textarea { font-family: inherit; }
       '</div>';
     }).join('');
   }
+
+  window.openDetail = function(id){
+    const p = PRODUCTS.find(x => x.id === id);
+    if (!p) return;
+    const sold = p.status === 'vendido';
+    const inCart = isInCart(p.id);
+    const imgHtml = p.image
+      ? '<img src="' + escHtml(p.image) + '" alt="' + escHtml(p.name) + '" data-cat="' + escHtml(p.category||'') + '" onerror="imgFallback(this)" style="width:100%; height:100%; object-fit:cover;">'
+      : iconFor(p.category);
+
+    document.getElementById('detailContent').innerHTML =
+      '<div style="position:relative;">' +
+        '<button class="panel-close" style="position:absolute; top:10px; right:10px; background:#fff; border-radius:999px; width:28px; height:28px; z-index:2;" onclick="closeOverlay(\'detailOverlay\')">✕</button>' +
+        '<div class="card-img" style="height:260px; border-radius:0;">' + imgHtml + '<div class="ribbon">Vendido</div></div>' +
+      '</div>' +
+      '<div style="padding:18px 20px 20px;">' +
+        '<div class="card-cat">' + escHtml(p.category || 'Sin categoría') + '</div>' +
+        '<div class="serif" style="font-size:20px; margin:4px 0 8px;">' + escHtml(p.name) + '</div>' +
+        '<div class="card-price" style="font-size:19px; margin-bottom:12px;">' + money(p.price) + '</div>' +
+        '<div style="font-size:13.5px; color:#4A3B36; line-height:1.5; white-space:pre-wrap; margin-bottom:16px;">' +
+          (p.description ? escHtml(p.description) : '<span style="color:#A9998F; font-style:italic;">Sin descripción todavía.</span>') +
+        '</div>' +
+        (sold
+          ? '<div class="sold-label" style="margin-top:0;">Ya no está disponible</div>'
+          : '<button class="cta cta-add ' + (inCart?'in-cart':'') + '" onclick="toggleCart(\'' + p.id + '\'); openDetail(\'' + p.id + '\');">' +
+              (inCart
+                ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>En el carrito'
+                : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Agregar al carrito') +
+            '</button>'
+        ) +
+      '</div>';
+    document.getElementById('detailOverlay').classList.add('show');
+  };
 
   window.handleImageSelect = async function(event){
     const file = event.target.files[0];
@@ -755,6 +797,7 @@ input, select, textarea { font-family: inherit; }
       document.getElementById('formName').value = p.name;
       document.getElementById('formPrice').value = p.price;
       document.getElementById('formCat').value = p.category || '';
+      document.getElementById('formDesc').value = p.description || '';
       document.getElementById('formImg').value = p.image || '';
       document.getElementById('imgUploadHint').textContent = 'Elegí una foto de la galería o sacá una con la cámara. Vacío = ícono genérico.';
       if (p.image) { document.getElementById('imgPreview').src = p.image; document.getElementById('imgPreview').style.display = 'block'; }
@@ -765,6 +808,7 @@ input, select, textarea { font-family: inherit; }
       document.getElementById('formName').value = '';
       document.getElementById('formPrice').value = '';
       document.getElementById('formCat').value = '';
+      document.getElementById('formDesc').value = '';
       document.getElementById('formImg').value = '';
       document.getElementById('imgUploadHint').textContent = 'Elegí una foto de la galería o sacá una con la cámara. Vacío = ícono genérico.';
       document.getElementById('imgPreview').style.display = 'none';
@@ -778,15 +822,16 @@ input, select, textarea { font-family: inherit; }
     const name = document.getElementById('formName').value.trim();
     const price = document.getElementById('formPrice').value;
     const category = document.getElementById('formCat').value.trim();
+    const description = document.getElementById('formDesc').value.trim();
     const image = document.getElementById('formImg').value.trim();
     const status = document.querySelector('input[name=formStatus]:checked').value;
     if (!name || !price) { showToast('Completá al menos nombre y precio'); return; }
     try {
       if (id) {
-        const { product } = await callAdmin('updateProduct', { id, name, price, category, image, status });
+        const { product } = await callAdmin('updateProduct', { id, name, price, category, description, image, status });
         PRODUCTS = PRODUCTS.map(p => p.id === id ? product : p);
       } else {
-        const { product } = await callAdmin('createProduct', { name, price, category, image, status });
+        const { product } = await callAdmin('createProduct', { name, price, category, description, image, status });
         PRODUCTS.unshift(product);
       }
       closeOverlay('formOverlay');
