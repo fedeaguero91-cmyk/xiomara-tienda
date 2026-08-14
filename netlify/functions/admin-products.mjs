@@ -95,6 +95,28 @@ export async function handler(event) {
         return { statusCode: 200, body: JSON.stringify({ settings: row }) };
       }
 
+      case 'listOrders': {
+        const { data: rows, error } = await supabase
+          .from('orders')
+          .select('*, order_items(*)')
+          .order('created_at', { ascending: false });
+        if (error) throw error;
+        return { statusCode: 200, body: JSON.stringify({ orders: rows }) };
+      }
+
+      case 'updateShippingStatus': {
+        const { id, shipping_status } = data;
+        if (!id || !shipping_status) return { statusCode: 400, body: JSON.stringify({ error: 'Falta id o shipping_status' }) };
+        const { data: row, error } = await supabase
+          .from('orders')
+          .update({ shipping_status })
+          .eq('id', id)
+          .select()
+          .single();
+        if (error) throw error;
+        return { statusCode: 200, body: JSON.stringify({ order: row }) };
+      }
+
       default:
         return { statusCode: 400, body: JSON.stringify({ error: 'Acción desconocida' }) };
     }
