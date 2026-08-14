@@ -94,6 +94,13 @@ input, select, textarea { font-family: inherit; }
 .field-hint { font-size: 11px; color: #A9998F; margin-top: 3px; }
 .radio-row { display: flex; gap: 14px; }
 .radio-row label { display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 500; }
+.ship-options { display: flex; flex-direction: column; gap: 8px; }
+.ship-option { display: flex; align-items: flex-start; gap: 10px; border: 1px solid #DCD0C6; border-radius: 10px; padding: 11px 12px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+.ship-option:hover { border-color: #C9A9AF; }
+.ship-option.selected { border-color: #9C4A5C; background: #FBF3F0; }
+.ship-option input[type="radio"] { margin-top: 3px; flex-shrink: 0; }
+.ship-option .ship-icon { font-size: 19px; line-height: 1; flex-shrink: 0; width: 22px; text-align: center; }
+.ship-option .ship-text { font-size: 13.5px; font-weight: 500; line-height: 1.35; }
 .panel-actions { display: flex; gap: 8px; margin-top: 16px; }
 .btn { flex: 1; border: none; border-radius: 8px; padding: 10px; font-size: 13px; font-weight: 600; }
 .btn.primary { background: #9C4A5C; color: #fff; }
@@ -279,10 +286,22 @@ input, select, textarea { font-family: inherit; }
     <div id="stepShipping" style="display:none;">
       <h3>Método de envío</h3>
       <div class="field">
-        <div class="radio-row" style="flex-direction:column; gap:10px; align-items:flex-start;">
-          <label><input type="radio" name="checkoutShipping" value="correo" onchange="toggleShippingFields()"> 📮 Correo Argentino</label>
-          <label><input type="radio" name="checkoutShipping" value="uber" onchange="toggleShippingFields()"> 🚗 Uber (dentro del anillo de circunvalación)</label>
-          <label><input type="radio" name="checkoutShipping" value="retiro" onchange="toggleShippingFields()"> 🏪 Punto de retiro</label>
+        <div class="ship-options">
+          <label class="ship-option" data-method="correo">
+            <input type="radio" name="checkoutShipping" value="correo" onchange="toggleShippingFields()">
+            <span class="ship-icon">📮</span>
+            <span class="ship-text">Correo Argentino</span>
+          </label>
+          <label class="ship-option" data-method="uber">
+            <input type="radio" name="checkoutShipping" value="uber" onchange="toggleShippingFields()">
+            <span class="ship-icon">🚗</span>
+            <span class="ship-text">Uber, dentro del anillo de circunvalación</span>
+          </label>
+          <label class="ship-option" data-method="retiro">
+            <input type="radio" name="checkoutShipping" value="retiro" onchange="toggleShippingFields()">
+            <span class="ship-icon">💬</span>
+            <span class="ship-text">A coordinar por WhatsApp</span>
+          </label>
         </div>
       </div>
       <div class="field" id="fieldAddress" style="display:none;">
@@ -293,8 +312,8 @@ input, select, textarea { font-family: inherit; }
         <label>Código postal</label>
         <input id="checkoutPostal">
       </div>
-      <div class="field-hint" id="retiroHint" style="display:none;">Coordinamos el punto y horario de retiro por WhatsApp después de la compra.</div>
-      <div class="field-hint">El costo del envío se coordina aparte, no se cobra en este pago.</div>
+      <div class="field-hint" id="retiroHint" style="display:none;">No se cobra envío. Después de la compra coordinamos por WhatsApp la dirección para entregarte tu pedido.</div>
+      <div class="field-hint" id="genericShippingHint">El costo del envío se coordina aparte, no se cobra en este pago.</div>
     </div>
 
     <div id="stepSummary" style="display:none;">
@@ -464,9 +483,13 @@ input, select, textarea { font-family: inherit; }
   window.toggleShippingFields = function(){
     const sel = document.querySelector('input[name=checkoutShipping]:checked');
     const method = sel ? sel.value : null;
+    document.querySelectorAll('.ship-option').forEach(opt => {
+      opt.classList.toggle('selected', opt.dataset.method === method);
+    });
     document.getElementById('fieldAddress').style.display = (method === 'correo' || method === 'uber') ? 'block' : 'none';
     document.getElementById('fieldPostal').style.display = method === 'correo' ? 'block' : 'none';
     document.getElementById('retiroHint').style.display = method === 'retiro' ? 'block' : 'none';
+    document.getElementById('genericShippingHint').style.display = method === 'retiro' ? 'none' : 'block';
   };
 
   function renderCheckoutStep(){
@@ -486,7 +509,7 @@ input, select, textarea { font-family: inherit; }
       const items = cartProducts();
       const total = items.reduce((s,p) => s + Number(p.price), 0);
       const method = document.querySelector('input[name=checkoutShipping]:checked').value;
-      const methodLabel = { correo: '📮 Correo Argentino', uber: '🚗 Uber (circunvalación)', retiro: '🏪 Punto de retiro' }[method];
+      const methodLabel = { correo: '📮 Correo Argentino', uber: '🚗 Uber (circunvalación)', retiro: '💬 A coordinar por WhatsApp' }[method];
       document.getElementById('summaryItems').innerHTML =
         items.map(p => '<div class="summary-line"><span>' + escHtml(p.name) + '</span><span>' + money(p.price) + '</span></div>').join('') +
         '<div class="summary-line" style="margin-top:6px; padding-top:6px; border-top:1px solid #DCD0C6;"><span>Envío</span><span>' + methodLabel + '</span></div>';
@@ -835,7 +858,7 @@ input, select, textarea { font-family: inherit; }
       return;
     }
     const payBadge = { pendiente: '⏳ Pago pendiente', aprobado: '✅ Pagado', rechazado: '❌ Rechazado' };
-    const shipLabel = { correo: '📮 Correo Argentino', uber: '🚗 Uber (circunvalación)', retiro: '🏪 Punto de retiro' };
+    const shipLabel = { correo: '📮 Correo Argentino', uber: '🚗 Uber (circunvalación)', retiro: '💬 A coordinar por WhatsApp' };
     list.innerHTML = orders.map(o => {
       const items = (o.order_items || []).map(i => escHtml(i.product_name) + ' (' + money(i.product_price) + ')').join(', ');
       return (
