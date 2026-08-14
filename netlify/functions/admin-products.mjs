@@ -36,13 +36,20 @@ export async function handler(event) {
   try {
     switch (action) {
       case 'createProduct': {
-        const { name, price, category, description, image, status } = data;
+        const { name, price, category, description, images, video, status } = data;
         if (!name || !price) {
           return { statusCode: 400, body: JSON.stringify({ error: 'Falta nombre o precio' }) };
         }
         const { data: row, error } = await supabase
           .from('products')
-          .insert({ name, price, category: category || null, description: description || null, image: image || null, status: status || 'disponible' })
+          .insert({
+            name, price,
+            category: category || null,
+            description: description || null,
+            images: Array.isArray(images) ? images.slice(0, 3) : [],
+            video: video || null,
+            status: status || 'disponible'
+          })
           .select()
           .single();
         if (error) throw error;
@@ -50,11 +57,18 @@ export async function handler(event) {
       }
 
       case 'updateProduct': {
-        const { id, name, price, category, description, image, status } = data;
+        const { id, name, price, category, description, images, video, status } = data;
         if (!id) return { statusCode: 400, body: JSON.stringify({ error: 'Falta id' }) };
         const { data: row, error } = await supabase
           .from('products')
-          .update({ name, price, category: category || null, description: description || null, image: image || null, status })
+          .update({
+            name, price,
+            category: category || null,
+            description: description || null,
+            images: Array.isArray(images) ? images.slice(0, 3) : [],
+            video: video || null,
+            status
+          })
           .eq('id', id)
           .select()
           .single();
