@@ -2,11 +2,28 @@ import { createClient } from '@supabase/supabase-js';
 
 // Esta función es la ÚNICA forma de escribir en la base de datos.
 // El navegador nunca toca Supabase directo para escribir — todo pasa
-// por acá, donde validamos el PIN y usamos la clave service_role
-// (que nunca se expone al público).
+// por acá, donde validamos que quien llama esté logueada de verdad
+// (con Supabase Auth) y usamos la clave service_role (que nunca se
+// expone al público) recién después de confirmar eso.
+
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1bHdxcXVxbnJyZ2drY2dwcGhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2NTQzMTQsImV4cCI6MjEwMjIzMDMxNH0.6LW67VrcVX8zQ34qm_1UEArjm8MvLWtIX56LoP98KzM';
 
 function getClient() {
   return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+}
+
+async function verifyUser(authHeader) {
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+  const token = authHeader.slice(7);
+  try {
+    const res = await fetch(process.env.SUPABASE_URL + '/auth/v1/user', {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + token }
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
 }
 
 export async function handler(event) {
@@ -14,8 +31,14 @@ export async function handler(event) {
     return { statusCode: 405, body: JSON.stringify({ error: 'Método no permitido' }) };
   }
 
-  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.ADMIN_PIN) {
-    return { statusCode: 500, body: JSON.stringify({ error: 'Falta configurar Supabase o el PIN en Netlify' }) };
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return { statusCode: 500, body: JSON.stringify({ error: 'Falta configurar Supabase en Netlify' }) };
+  }
+
+  const authHeader = event.headers.authorization || event.headers.Authorization;
+  const user = await verifyUser(authHeader);
+  if (!user) {
+    return { statusCode: 401, body: JSON.stringify({ error: 'Sesión inválida o vencida' }) };
   }
 
   let payload;
@@ -25,11 +48,7 @@ export async function handler(event) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Body inválido' }) };
   }
 
-  const { pin, action, data } = payload;
-
-  if (pin !== process.env.ADMIN_PIN) {
-    return { statusCode: 401, body: JSON.stringify({ error: 'PIN incorrecto' }) };
-  }
+  const { action, data } = payload;
 
   const supabase = getClient();
 
