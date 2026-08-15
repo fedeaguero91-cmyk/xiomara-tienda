@@ -87,16 +87,12 @@ input, select, textarea { font-family: inherit; }
 <body>
 
 <div class="overlay show" id="pinOverlay">
-  <div class="panel" style="max-width:300px; text-align:center;">
+  <div class="panel" style="max-width:320px;">
     <h3>Panel de xiomara.accs</h3>
-    <div class="field-hint" style="text-align:center; margin-bottom:6px;">Ingresá el PIN para entrar</div>
-    <div class="pin-dots">
-      <input maxlength="1" inputmode="numeric" class="pinDigit">
-      <input maxlength="1" inputmode="numeric" class="pinDigit">
-      <input maxlength="1" inputmode="numeric" class="pinDigit">
-      <input maxlength="1" inputmode="numeric" class="pinDigit">
-    </div>
-    <button class="btn primary" style="width:100%;" onclick="checkPin()">Entrar</button>
+    <div class="field"><label>Email</label><input id="loginEmail" type="email" autocomplete="username"></div>
+    <div class="field"><label>Contraseña</label><input id="loginPassword" type="password" autocomplete="current-password"></div>
+    <div class="field-hint" id="loginError" style="color:#9C4A5C; display:none;"></div>
+    <button class="btn primary" style="width:100%;" onclick="login()">Entrar</button>
   </div>
 </div>
 
@@ -178,7 +174,6 @@ input, select, textarea { font-family: inherit; }
 
   let PRODUCTS = [];
   let SETTINGS = { store_name: '', tagline: '', whatsapp: '' };
-  let adminPin = null;
   let confirmingDeleteId = null;
   let formImages = [];
 
@@ -210,51 +205,111 @@ input, select, textarea { font-family: inherit; }
     return res.json();
   }
 
+  // ---------- sesión ----------
+  let session = null; // { access_token, refresh_token }
+
+  function saveSession(s){
+    session = s;
+    try { localStorage.setItem('xiomara_admin_session', JSON.stringify(s)); } catch {}
+  }
+  function loadSession(){
+    try {
+      const raw = localStorage.getItem('xiomara_admin_session');
+      session = raw ? JSON.parse(raw) : null;
+    } catch { session = null; }
+  }
+  function clearSession(){
+    session = null;
+    try { localStorage.removeItem('xiomara_admin_session'); } catch {}
+  }
+
+  async function refreshSession(){
+    if (!session || !session.refresh_token) return false;
+    try {
+      const res = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
+        method: 'POST',
+        headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: session.refresh_token })
+      });
+      if (!res.ok) return false;
+      const data = await res.json();
+      saveSession({ access_token: data.access_token, refresh_token: data.refresh_token });
+      return true;
+    } catch { return false; }
+  }
+
   async function callAdmin(action, data){
-    const res = await fetch('/.netlify/functions/admin-products', {
+    if (!session) throw new Error('Sesión vencida, volvé a entrar');
+    let res = await fetch('/.netlify/functions/admin-products', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pin: adminPin, action, data })
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
+      body: JSON.stringify({ action, data })
     });
+    if (res.status === 401) {
+      const refreshed = await refreshSession();
+      if (refreshed) {
+        res = await fetch('/.netlify/functions/admin-products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
+          body: JSON.stringify({ action, data })
+        });
+      } else {
+        clearSession();
+        showLogin();
+        throw new Error('Sesión vencida, volvé a entrar');
+      }
+    }
     const result = await res.json();
     if (!res.ok) throw new Error(result.error || 'Error');
     return result;
   }
 
-  // ---------- login ----------
-  const digits = document.querySelectorAll('.pinDigit');
-  digits[0].focus();
-  digits.forEach((d,i) => { d.oninput = () => { if (d.value && digits[i+1]) digits[i+1].focus(); }; });
+  function showLogin(){
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('pinOverlay').classList.add('show');
+    document.getElementById('loginPassword').value = '';
+  }
 
-  window.checkPin = async function(){
-    const entered = Array.from(digits).map(d => d.value).join('');
+  // ---------- login ----------
+  window.login = async function(){
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const errBox = document.getElementById('loginError');
+    errBox.style.display = 'none';
+    if (!email || !password) { errBox.textContent = 'Completá email y contraseña'; errBox.style.display = 'block'; return; }
     try {
-      const settingsRows = await sbFetch('store_settings?select=*&id=eq.1');
-      const current = (settingsRows && settingsRows[0]) || { store_name: 'xiomara.accs', tagline: '', whatsapp: '' };
-      const res = await fetch('/.netlify/functions/admin-products', {
+      const res = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=password', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin: entered, action: 'updateSettings', data: current })
+        headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
       });
-      if (!res.ok) throw new Error();
-      const result = await res.json();
-      adminPin = entered;
-      SETTINGS = result.settings;
+      const data = await res.json();
+      if (!res.ok) throw new Error('Email o contraseña incorrectos');
+      saveSession({ access_token: data.access_token, refresh_token: data.refresh_token });
       document.getElementById('pinOverlay').classList.remove('show');
       document.getElementById('app').style.display = 'block';
       loadEverything();
-    } catch {
-      showToast('PIN incorrecto');
+    } catch (e) {
+      errBox.textContent = e.message;
+      errBox.style.display = 'block';
     }
   };
 
   window.logout = function(){
-    adminPin = null;
-    document.getElementById('app').style.display = 'none';
-    document.getElementById('pinOverlay').classList.add('show');
-    digits.forEach(d => d.value = '');
-    digits[0].focus();
+    clearSession();
+    showLogin();
   };
+
+  // Si ya había una sesión guardada, entramos directo sin pedir login de nuevo.
+  loadSession();
+  if (session) {
+    document.getElementById('pinOverlay').classList.remove('show');
+    document.getElementById('app').style.display = 'block';
+    loadEverything();
+  } else {
+    document.getElementById('loginEmail').focus();
+  }
+  document.getElementById('loginPassword').addEventListener('keydown', (e) => { if (e.key === 'Enter') login(); });
 
   window.switchTab = function(view){
     document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === view));
@@ -262,7 +317,12 @@ input, select, textarea { font-family: inherit; }
     if (view === 'viewOrders') loadOrders();
   };
 
+
   async function loadEverything(){
+    try {
+      const settingsRows = await sbFetch('store_settings?select=*&id=eq.1');
+      if (settingsRows && settingsRows[0]) SETTINGS = settingsRows[0];
+    } catch (e) { console.error(e); }
     document.getElementById('setName').value = SETTINGS.store_name || '';
     document.getElementById('setTagline').value = SETTINGS.tagline || '';
     document.getElementById('setWsp').value = SETTINGS.whatsapp || '';
