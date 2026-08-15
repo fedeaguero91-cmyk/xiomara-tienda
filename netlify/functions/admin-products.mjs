@@ -55,10 +55,11 @@ export async function handler(event) {
   try {
     switch (action) {
       case 'createProduct': {
-        const { name, price, category, description, images, video, status } = data;
+        const { name, price, category, description, images, video, stock } = data;
         if (!name || !price) {
           return { statusCode: 400, body: JSON.stringify({ error: 'Falta nombre o precio' }) };
         }
+        const stockNum = Number.isFinite(Number(stock)) ? Math.max(0, Math.floor(Number(stock))) : 1;
         const { data: row, error } = await supabase
           .from('products')
           .insert({
@@ -67,7 +68,8 @@ export async function handler(event) {
             description: description || null,
             images: Array.isArray(images) ? images.slice(0, 3) : [],
             video: video || null,
-            status: status || 'disponible'
+            stock: stockNum,
+            status: stockNum > 0 ? 'disponible' : 'vendido'
           })
           .select()
           .single();
@@ -76,8 +78,9 @@ export async function handler(event) {
       }
 
       case 'updateProduct': {
-        const { id, name, price, category, description, images, video, status } = data;
+        const { id, name, price, category, description, images, video, stock } = data;
         if (!id) return { statusCode: 400, body: JSON.stringify({ error: 'Falta id' }) };
+        const stockNum = Number.isFinite(Number(stock)) ? Math.max(0, Math.floor(Number(stock))) : 0;
         const { data: row, error } = await supabase
           .from('products')
           .update({
@@ -86,7 +89,8 @@ export async function handler(event) {
             description: description || null,
             images: Array.isArray(images) ? images.slice(0, 3) : [],
             video: video || null,
-            status
+            stock: stockNum,
+            status: stockNum > 0 ? 'disponible' : 'vendido'
           })
           .eq('id', id)
           .select()
@@ -103,17 +107,47 @@ export async function handler(event) {
         return { statusCode: 200, body: JSON.stringify({ ok: true }) };
       }
 
-      case 'toggleStatus': {
-        const { id, status } = data;
-        if (!id || !status) return { statusCode: 400, body: JSON.stringify({ error: 'Falta id o status' }) };
+      case 'setStock': {
+        const { id, stock } = data;
+        if (!id || stock == null) return { statusCode: 400, body: JSON.stringify({ error: 'Falta id o stock' }) };
+        const stockNum = Math.max(0, Math.floor(Number(stock)));
         const { data: row, error } = await supabase
           .from('products')
-          .update({ status })
+          .update({ stock: stockNum, status: stockNum > 0 ? 'disponible' : 'vendido' })
           .eq('id', id)
           .select()
           .single();
         if (error) throw error;
         return { statusCode: 200, body: JSON.stringify({ product: row }) };
+      }
+
+      case 'listCategories': {
+        const { data: rows, error } = await supabase.from('categories').select('*').order('name');
+        if (error) throw error;
+        return { statusCode: 200, body: JSON.stringify({ categories: rows }) };
+      }
+
+      case 'createCategory': {
+        const { name } = data;
+        if (!name || !name.trim()) return { statusCode: 400, body: JSON.stringify({ error: 'Falta el nombre' }) };
+        const { data: row, error } = await supabase
+          .from('categories')
+          .insert({ name: name.trim() })
+          .select()
+          .single();
+        if (error) {
+          if (error.code === '23505') return { statusCode: 409, body: JSON.stringify({ error: 'Esa categoría ya existe' }) };
+          throw error;
+        }
+        return { statusCode: 200, body: JSON.stringify({ category: row }) };
+      }
+
+      case 'deleteCategory': {
+        const { id } = data;
+        if (!id) return { statusCode: 400, body: JSON.stringify({ error: 'Falta id' }) };
+        const { error } = await supabase.from('categories').delete().eq('id', id);
+        if (error) throw error;
+        return { statusCode: 200, body: JSON.stringify({ ok: true }) };
       }
 
       case 'updateSettings': {

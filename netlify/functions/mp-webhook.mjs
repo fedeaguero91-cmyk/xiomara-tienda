@@ -56,15 +56,26 @@ export async function handler(event) {
 
     if (error) throw error;
 
-    // Si el pago se aprobó, marcamos TODOS los productos del pedido como vendidos.
+    // Si el pago se aprobó, descontamos del stock la cantidad comprada de cada producto.
     if (paymentStatus === 'aprobado') {
       const { data: items } = await supabase
         .from('order_items')
-        .select('product_id')
+        .select('product_id, quantity')
         .eq('order_id', orderId);
-      const productIds = (items || []).map(i => i.product_id).filter(Boolean);
-      if (productIds.length > 0) {
-        await supabase.from('products').update({ status: 'vendido' }).in('id', productIds);
+
+      for (const item of items || []) {
+        if (!item.product_id) continue;
+        const { data: product } = await supabase
+          .from('products')
+          .select('stock')
+          .eq('id', item.product_id)
+          .single();
+        if (!product) continue;
+        const newStock = Math.max(0, Number(product.stock) - Number(item.quantity || 1));
+        await supabase
+          .from('products')
+          .update({ stock: newStock, status: newStock > 0 ? 'disponible' : 'vendido' })
+          .eq('id', item.product_id);
       }
     }
 

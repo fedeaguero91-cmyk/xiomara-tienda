@@ -21,7 +21,16 @@ export async function handler(event) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Body inválido' }) };
   }
 
-  const cartIds = Array.isArray(payload.cart) ? [...new Set(payload.cart)] : [];
+  const cartRaw = Array.isArray(payload.cart) ? payload.cart : [];
+  // Aceptamos tanto [{productId, quantity}] como una lista vieja de solo IDs (compatibilidad).
+  const cartMap = new Map();
+  for (const item of cartRaw) {
+    const id = typeof item === 'string' ? item : item.productId;
+    const qty = typeof item === 'string' ? 1 : Math.max(1, Math.floor(Number(item.quantity) || 1));
+    if (!id) continue;
+    cartMap.set(id, (cartMap.get(id) || 0) + qty);
+  }
+  const cartIds = [...cartMap.keys()];
   const buyer = payload.buyer || {};
 
   if (cartIds.length === 0) {
@@ -42,7 +51,7 @@ export async function handler(event) {
   // Buscamos los productos reales en la base — nunca confiamos en precios que mande el navegador.
   const { data: products, error: productsError } = await supabase
     .from('products')
-    .select('id, name, price, status')
+    .select('id, name, price, stock')
     .in('id', cartIds);
 
   if (productsError) {
@@ -52,12 +61,12 @@ export async function handler(event) {
   if (!products || products.length !== cartIds.length) {
     return { statusCode: 404, body: JSON.stringify({ error: 'Algún producto del carrito ya no existe' }) };
   }
-  const sold = products.filter(p => p.status === 'vendido');
-  if (sold.length > 0) {
-    return { statusCode: 409, body: JSON.stringify({ error: `Ya no está disponible: ${sold.map(p => p.name).join(', ')}` }) };
+  const withoutStock = products.filter(p => Number(p.stock) < cartMap.get(p.id));
+  if (withoutStock.length > 0) {
+    return { statusCode: 409, body: JSON.stringify({ error: `No hay stock suficiente de: ${withoutStock.map(p => p.name).join(', ')}` }) };
   }
 
-  const total = products.reduce((sum, p) => sum + Number(p.price), 0);
+  const total = products.reduce((sum, p) => sum + Number(p.price) * cartMap.get(p.id), 0);
 
   let orderId = null;
 
@@ -85,7 +94,8 @@ export async function handler(event) {
         order_id: orderId,
         product_id: p.id,
         product_name: p.name,
-        product_price: p.price
+        product_price: p.price,
+        quantity: cartMap.get(p.id)
       })));
     if (itemsError) throw itemsError;
 
@@ -96,7 +106,7 @@ export async function handler(event) {
       body: {
         items: products.map(p => ({
           title: String(p.name).slice(0, 200),
-          quantity: 1,
+          quantity: cartMap.get(p.id),
           unit_price: Number(p.price),
           currency_id: 'ARS'
         })),
