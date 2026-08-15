@@ -105,6 +105,7 @@ input, select, textarea { font-family: inherit; }
   <div class="tabs">
     <button class="tab active" data-view="viewProducts" onclick="switchTab('viewProducts')">Productos</button>
     <button class="tab" data-view="viewCategories" onclick="switchTab('viewCategories')">Categorías</button>
+    <button class="tab" data-view="viewPickup" onclick="switchTab('viewPickup')">Retiro</button>
     <button class="tab" data-view="viewOrders" onclick="switchTab('viewOrders')">Pedidos</button>
     <button class="tab" data-view="viewSettings" onclick="switchTab('viewSettings')">Ajustes</button>
   </div>
@@ -125,6 +126,15 @@ input, select, textarea { font-family: inherit; }
         <button class="btn primary" style="flex:none; padding:9px 16px;" onclick="addCategory()">Agregar</button>
       </div>
       <div id="categoriesList" style="margin-top:16px;"><div class="loading">Cargando...</div></div>
+    </div>
+
+    <div class="view" id="viewPickup">
+      <div class="section-head"><h2>Puntos de retiro</h2></div>
+      <div class="field"><label>Nombre del lugar</label><input id="ppName" placeholder="Ej: Local en Nueva Córdoba"></div>
+      <div class="field"><label>Dirección</label><input id="ppAddress" placeholder="Ej: Av. Colón 1234, Córdoba"></div>
+      <div class="field"><label>Horario (opcional)</label><input id="ppHours" placeholder="Ej: Lun a vie de 10 a 18hs"></div>
+      <button class="btn primary" onclick="addPickupPoint()">Agregar punto de retiro</button>
+      <div id="pickupList" style="margin-top:16px;"><div class="loading">Cargando...</div></div>
     </div>
 
     <div class="view" id="viewOrders">
@@ -327,6 +337,55 @@ input, select, textarea { font-family: inherit; }
     document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === view));
     if (view === 'viewOrders') loadOrders();
     if (view === 'viewCategories') loadCategories();
+    if (view === 'viewPickup') loadPickupPoints();
+  };
+
+  // ---------- puntos de retiro ----------
+  async function loadPickupPoints(){
+    document.getElementById('pickupList').innerHTML = '<div class="loading">Cargando...</div>';
+    try {
+      const { pickupPoints } = await callAdmin('listPickupPoints', {});
+      renderPickupPoints(pickupPoints);
+    } catch (e) {
+      document.getElementById('pickupList').innerHTML = '<p class="empty-msg">No se pudieron cargar.</p>';
+    }
+  }
+  function renderPickupPoints(points){
+    const list = document.getElementById('pickupList');
+    if (!points || points.length === 0) {
+      list.innerHTML = '<p class="empty-msg">Todavía no cargaste ningún punto de retiro. Mientras tanto, la tienda le va a decir al comprador que coordinen por WhatsApp.</p>';
+      return;
+    }
+    list.innerHTML = points.map(p => (
+      '<div class="prow">' +
+        '<div style="flex:1;">' +
+          '<div class="prow-name">' + escHtml(p.name) + '</div>' +
+          '<div class="prow-meta">' + escHtml(p.address) + (p.hours ? ' · ' + escHtml(p.hours) : '') + '</div>' +
+        '</div>' +
+        '<button class="icon-btn danger" title="Eliminar" onclick="deletePickupPoint(\'' + p.id + '\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0-1 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 6"/></svg></button>' +
+      '</div>'
+    )).join('');
+  }
+  window.addPickupPoint = async function(){
+    const name = document.getElementById('ppName').value.trim();
+    const address = document.getElementById('ppAddress').value.trim();
+    const hours = document.getElementById('ppHours').value.trim();
+    if (!name || !address) { showToast('Completá nombre y dirección'); return; }
+    try {
+      await callAdmin('createPickupPoint', { name, address, hours });
+      document.getElementById('ppName').value = '';
+      document.getElementById('ppAddress').value = '';
+      document.getElementById('ppHours').value = '';
+      await loadPickupPoints();
+      showToast('Punto de retiro agregado');
+    } catch (e) { showToast(e.message); }
+  };
+  window.deletePickupPoint = async function(id){
+    try {
+      await callAdmin('deletePickupPoint', { id });
+      await loadPickupPoints();
+      showToast('Eliminado');
+    } catch (e) { showToast(e.message); }
   };
 
 
@@ -658,7 +717,7 @@ input, select, textarea { font-family: inherit; }
       return;
     }
     const payBadge = { pendiente: '⏳ Pago pendiente', aprobado: '✅ Pagado', rechazado: '❌ Rechazado' };
-    const shipLabel = { correo: '📮 Correo Argentino', uber: '🚗 Uber (circunvalación)', retiro: '💬 A coordinar por WhatsApp' };
+    const shipLabel = { correo: '📮 Correo Argentino', uber: '🚗 Uber (circunvalación)', retiro: '🏪 Retiro' };
     list.innerHTML = orders.map(o => {
       const items = (o.order_items || []).map(i => escHtml(i.product_name) + ' (' + money(i.product_price) + ')').join(', ');
       return (

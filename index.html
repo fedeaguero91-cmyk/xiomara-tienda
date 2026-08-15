@@ -62,7 +62,7 @@ input, select, textarea { font-family: inherit; }
 .cta:disabled { background: #C9BFB6; color: #fff; cursor: not-allowed; }
 .sold-label { margin-top: 10px; text-align: center; font-size: 12px; color: #A98F86; font-style: italic; }
 .stock-hint { font-size: 11px; color: #9C4A5C; font-weight: 600; margin-top: 2px; min-height: 14px; }
-.qty-stepper { margin-top: 8px; display: flex; align-items: center; justify-content: space-between; background: #4C7A5B; border-radius: 8px; padding: 4px; }
+.qty-stepper { margin-top: 8px; display: flex; align-items: center; justify-content: space-between; background: #4C7A5B; border-radius: 8px; padding: 4px; width: 100%; }
 .qty-stepper button { background: rgba(255,255,255,0.15); border: none; color: #fff; width: 26px; height: 26px; border-radius: 6px; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
 .qty-stepper button:hover { background: rgba(255,255,255,0.28); }
 .qty-stepper button:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -117,10 +117,6 @@ input, select, textarea { font-family: inherit; }
 .cart-item-remove { margin-left: auto; background: none; border: none; color: #A9998F; font-size: 16px; padding: 4px; }
 .cart-total-row { display: flex; justify-content: space-between; font-weight: 700; font-size: 15px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #DCD0C6; }
 
-.steps-indicator { display: flex; gap: 6px; margin-bottom: 16px; }
-.step-dot { flex: 1; height: 4px; border-radius: 999px; background: #EFE6DC; }
-.step-dot.active { background: #9C4A5C; }
-.step-dot.done { background: #B98B3E; }
 .summary-line { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; }
 .summary-box { background: #F7F1EC; border-radius: 10px; padding: 12px; margin-bottom: 12px; font-size: 12.5px; }
 
@@ -166,55 +162,38 @@ input, select, textarea { font-family: inherit; }
   <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2Zm5.7 14.2c-.2.6-1.3 1.2-1.9 1.3-.5.1-1.1.1-1.8-.1-.4-.1-.9-.3-1.6-.6-2.7-1.2-4.5-3.9-4.6-4.1-.1-.2-1.1-1.5-1.1-2.8 0-1.3.7-2 1-2.2.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .6.5.2.5.7 1.8.8 1.9.1.2.1.4 0 .6-.1.2-.2.3-.3.5-.2.2-.3.3-.5.5-.2.2-.3.4-.1.7.2.3.9 1.5 1.9 2.4 1.3 1.2 2.4 1.5 2.7 1.7.3.2.5.1.7-.1.2-.2.8-.9 1-1.2.2-.3.4-.2.7-.1.3.1 1.8.9 2.1 1 .3.2.5.2.6.3.1.2.1.7-.1 1.3Z"/></svg>
 </button>
 
-<div class="overlay" id="cartOverlay">
-  <div class="panel">
-    <button class="panel-close" onclick="closeOverlay('cartOverlay')">✕</button>
-    <h3>Tu carrito</h3>
-    <div id="cartItemsList"></div>
-    <div class="panel-actions">
-      <button class="btn ghost" onclick="closeOverlay('cartOverlay')">Seguir viendo</button>
-      <button class="btn primary" id="cartContinueBtn" onclick="startCheckout()">Continuar</button>
-    </div>
-  </div>
-</div>
+<div class="overlay" id="orderOverlay">
+  <div class="panel" style="max-width:420px;">
+    <button class="panel-close" onclick="closeOverlay('orderOverlay')">✕</button>
+    <h3>Tu pedido</h3>
+    <div id="orderItemsList"></div>
 
-<div class="overlay" id="checkoutOverlay">
-  <div class="panel">
-    <button class="panel-close" onclick="closeOverlay('checkoutOverlay')">✕</button>
-    <div class="steps-indicator">
-      <div class="step-dot" id="dot1"></div>
-      <div class="step-dot" id="dot2"></div>
-      <div class="step-dot" id="dot3"></div>
-    </div>
+    <div id="orderEmptyMsg" style="display:none; color:#8A7268; text-align:center; padding:20px 0;">Todavía no agregaste nada.</div>
 
-    <div id="stepBuyer">
-      <h3>Tus datos</h3>
-      <div class="field"><label>Nombre y apellido</label><input id="checkoutName"></div>
+    <div id="orderFormSection">
+      <div class="field" style="margin-top:14px;"><label>Nombre y apellido</label><input id="checkoutName"></div>
       <div class="field"><label>Teléfono</label><input id="checkoutPhone" placeholder="Ej: 3511234567"></div>
-    </div>
 
-    <div id="stepShipping" style="display:none;">
-      <h3>Método de envío</h3>
-      <div class="field">
-        <div class="ship-options">
-          <label class="ship-option" data-method="correo">
-            <input type="radio" name="checkoutShipping" value="correo" onchange="toggleShippingFields()">
-            <span class="ship-icon">📮</span>
-            <span class="ship-text">Correo Argentino</span>
-          </label>
-          <label class="ship-option" data-method="uber">
-            <input type="radio" name="checkoutShipping" value="uber" onchange="toggleShippingFields()">
-            <span class="ship-icon">🚗</span>
-            <span class="ship-text">Uber, dentro del anillo de circunvalación</span>
-          </label>
-          <label class="ship-option" data-method="retiro">
-            <input type="radio" name="checkoutShipping" value="retiro" onchange="toggleShippingFields()">
-            <span class="ship-icon">💬</span>
-            <span class="ship-text">A coordinar por WhatsApp</span>
-          </label>
-        </div>
+      <label style="display:block; font-size:11.5px; font-weight:600; color:#6B5850; margin-bottom:6px;">Método de envío</label>
+      <div class="ship-options">
+        <label class="ship-option" data-method="correo">
+          <input type="radio" name="checkoutShipping" value="correo" onchange="onShippingChange()">
+          <span class="ship-icon">📮</span>
+          <span class="ship-text">Correo Argentino</span>
+        </label>
+        <label class="ship-option" data-method="uber">
+          <input type="radio" name="checkoutShipping" value="uber" onchange="onShippingChange()">
+          <span class="ship-icon">🚗</span>
+          <span class="ship-text">Uber, dentro del anillo de circunvalación</span>
+        </label>
+        <label class="ship-option" data-method="retiro">
+          <input type="radio" name="checkoutShipping" value="retiro" onchange="onShippingChange()">
+          <span class="ship-icon">🏪</span>
+          <span class="ship-text">Retiro</span>
+        </label>
       </div>
-      <div class="field" id="fieldAddress" style="display:none;">
+
+      <div class="field" id="fieldAddress" style="display:none; margin-top:10px;">
         <label>Dirección completa y localidad</label>
         <textarea id="checkoutAddress" rows="2"></textarea>
       </div>
@@ -222,19 +201,15 @@ input, select, textarea { font-family: inherit; }
         <label>Código postal</label>
         <input id="checkoutPostal">
       </div>
-      <div class="field-hint" id="retiroHint" style="display:none;">No se cobra envío. Después de la compra coordinamos por WhatsApp la dirección para entregarte tu pedido.</div>
+      <div id="fieldPickup" style="display:none; margin-top:10px;">
+        <label style="display:block; font-size:11.5px; font-weight:600; color:#6B5850; margin-bottom:6px;">Elegí dónde retirar</label>
+        <div id="pickupOptions" class="ship-options"></div>
+      </div>
       <div class="field-hint" id="genericShippingHint">El costo del envío se coordina aparte, no se cobra en este pago.</div>
-    </div>
 
-    <div id="stepSummary" style="display:none;">
-      <h3>Confirmá tu pedido</h3>
-      <div class="summary-box" id="summaryItems"></div>
-      <div class="cart-total-row" id="summaryTotal"></div>
-    </div>
+      <div class="summary-box" style="margin-top:14px;" id="orderSummaryBox"></div>
 
-    <div class="panel-actions">
-      <button class="btn ghost" id="checkoutBackBtn" onclick="checkoutBack()">Atrás</button>
-      <button class="btn primary" id="checkoutNextBtn" onclick="checkoutNext()">Siguiente</button>
+      <button class="btn primary" style="width:100%;" id="orderSubmitBtn" onclick="submitCheckout()">Confirmar y pagar</button>
     </div>
   </div>
 </div>
@@ -256,7 +231,6 @@ input, select, textarea { font-family: inherit; }
   let searchTerm = '';
   let activeCat = 'Todos';
   let CART = [];
-  let checkoutStep = 1;
 
   const ICONS = {
     default: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="7" width="16" height="13" rx="2"/><path d="M8 7V5a4 4 0 0 1 8 0v2"/></svg>',
@@ -307,14 +281,18 @@ input, select, textarea { font-family: inherit; }
     return res.json();
   }
 
+  let PICKUP_POINTS = [];
+
   async function loadData(){
     try {
-      const [products, settingsRows] = await Promise.all([
+      const [products, settingsRows, pickupRows] = await Promise.all([
         sbFetch('products?select=*&order=created_at.desc'),
-        sbFetch('store_settings?select=*&id=eq.1')
+        sbFetch('store_settings?select=*&id=eq.1'),
+        sbFetch('pickup_points?select=*&order=created_at')
       ]);
       PRODUCTS = products;
       if (settingsRows && settingsRows[0]) SETTINGS = settingsRows[0];
+      PICKUP_POINTS = pickupRows || [];
     } catch (e) {
       console.error(e);
       showToast('No se pudo cargar el catálogo');
@@ -372,7 +350,7 @@ input, select, textarea { font-family: inherit; }
     refreshOpenCart();
   };
   function refreshOpenCart(){
-    if (document.getElementById('cartOverlay').classList.contains('show')) openCart();
+    if (document.getElementById('orderOverlay').classList.contains('show')) renderOrderPanel();
     if (document.getElementById('detailOverlay').classList.contains('show') && detailOpenId) openDetail(detailOpenId);
   }
   function renderCartBadge(){
@@ -395,22 +373,8 @@ input, select, textarea { font-family: inherit; }
   }
 
   window.openCart = function(){
-    const items = cartProducts();
-    const list = document.getElementById('cartItemsList');
-    if (items.length === 0) {
-      list.innerHTML = '<p style="color:#8A7268; text-align:center; padding:20px 0;">Todavía no agregaste nada.</p>';
-    } else {
-      const total = items.reduce((s,p) => s + Number(p.price) * cartQty(p.id), 0);
-      list.innerHTML = items.map(p => (
-        '<div class="cart-item">' +
-          '<div class="cart-item-img">' + ((p.images && p.images[0]) ? '<img src="' + escHtml(p.images[0]) + '">' : (p.image ? '<img src="' + escHtml(p.image) + '">' : iconFor(p.category))) + '</div>' +
-          '<div><div class="cart-item-name">' + escHtml(p.name) + '</div><div class="cart-item-price">' + money(p.price) + ' c/u</div></div>' +
-          '<div style="margin-left:auto;">' + qtyStepperHtml(p.id, true, true) + '</div>' +
-        '</div>'
-      )).join('') + '<div class="cart-total-row"><span>Total</span><span>' + money(total) + '</span></div>';
-    }
-    document.getElementById('cartContinueBtn').disabled = items.length === 0;
-    document.getElementById('cartOverlay').classList.add('show');
+    renderOrderPanel();
+    document.getElementById('orderOverlay').classList.add('show');
   };
 
   window.openWhatsapp = function(){
@@ -420,89 +384,101 @@ input, select, textarea { font-family: inherit; }
     window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(msg), '_blank');
   };
 
-  window.startCheckout = function(){
-    closeOverlay('cartOverlay');
-    checkoutStep = 1;
-    document.getElementById('checkoutName').value = '';
-    document.getElementById('checkoutPhone').value = '';
-    document.getElementById('checkoutAddress').value = '';
-    document.getElementById('checkoutPostal').value = '';
-    document.querySelectorAll('input[name=checkoutShipping]').forEach(r => r.checked = false);
-    toggleShippingFields();
-    renderCheckoutStep();
-    document.getElementById('checkoutOverlay').classList.add('show');
-  };
+  function renderOrderPanel(){
+    const items = cartProducts();
+    const list = document.getElementById('orderItemsList');
+    const formSection = document.getElementById('orderFormSection');
+    const emptyMsg = document.getElementById('orderEmptyMsg');
 
-  window.toggleShippingFields = function(){
+    if (items.length === 0) {
+      list.innerHTML = '';
+      formSection.style.display = 'none';
+      emptyMsg.style.display = 'block';
+      return;
+    }
+    emptyMsg.style.display = 'none';
+    formSection.style.display = 'block';
+
+    list.innerHTML = items.map(p => (
+      '<div class="cart-item">' +
+        '<div class="cart-item-img">' + ((p.images && p.images[0]) ? '<img src="' + escHtml(p.images[0]) + '">' : (p.image ? '<img src="' + escHtml(p.image) + '">' : iconFor(p.category))) + '</div>' +
+        '<div><div class="cart-item-name">' + escHtml(p.name) + '</div><div class="cart-item-price">' + money(p.price) + ' c/u</div></div>' +
+        '<div style="margin-left:auto;">' + qtyStepperHtml(p.id, true, true) + '</div>' +
+      '</div>'
+    )).join('');
+
+    if (PICKUP_POINTS.length > 0) {
+      document.getElementById('pickupOptions').innerHTML = PICKUP_POINTS.map((pt, i) => (
+        '<label class="ship-option" data-pickup="' + pt.id + '">' +
+          '<input type="radio" name="pickupPoint" value="' + pt.id + '" onchange="onShippingChange()" ' + (i===0?'':'') + '>' +
+          '<span class="ship-icon">📍</span>' +
+          '<span class="ship-text"><b>' + escHtml(pt.name) + '</b><br>' + escHtml(pt.address) + (pt.hours ? '<br>' + escHtml(pt.hours) : '') + '</span>' +
+        '</label>'
+      )).join('');
+    } else {
+      document.getElementById('pickupOptions').innerHTML = '<div class="field-hint">Coordinamos el punto y horario de retiro por WhatsApp después de la compra.</div>';
+    }
+
+    updateOrderSummary();
+  }
+
+  window.onShippingChange = function(){
     const sel = document.querySelector('input[name=checkoutShipping]:checked');
     const method = sel ? sel.value : null;
-    document.querySelectorAll('.ship-option').forEach(opt => {
+    document.querySelectorAll('#orderFormSection > .ship-options .ship-option').forEach(opt => {
       opt.classList.toggle('selected', opt.dataset.method === method);
     });
     document.getElementById('fieldAddress').style.display = (method === 'correo' || method === 'uber') ? 'block' : 'none';
     document.getElementById('fieldPostal').style.display = method === 'correo' ? 'block' : 'none';
-    document.getElementById('retiroHint').style.display = method === 'retiro' ? 'block' : 'none';
+    document.getElementById('fieldPickup').style.display = method === 'retiro' ? 'block' : 'none';
     document.getElementById('genericShippingHint').style.display = method === 'retiro' ? 'none' : 'block';
+
+    const pickupSel = document.querySelector('input[name=pickupPoint]:checked');
+    document.querySelectorAll('#pickupOptions .ship-option').forEach(opt => {
+      opt.classList.toggle('selected', pickupSel && opt.dataset.pickup === pickupSel.value);
+    });
+
+    updateOrderSummary();
   };
 
-  function renderCheckoutStep(){
-    document.getElementById('stepBuyer').style.display = checkoutStep === 1 ? 'block' : 'none';
-    document.getElementById('stepShipping').style.display = checkoutStep === 2 ? 'block' : 'none';
-    document.getElementById('stepSummary').style.display = checkoutStep === 3 ? 'block' : 'none';
-    ['dot1','dot2','dot3'].forEach((id, i) => {
-      const dot = document.getElementById(id);
-      dot.classList.remove('active','done');
-      if (i + 1 < checkoutStep) dot.classList.add('done');
-      else if (i + 1 === checkoutStep) dot.classList.add('active');
-    });
-    document.getElementById('checkoutBackBtn').style.display = checkoutStep === 1 ? 'none' : 'block';
-    document.getElementById('checkoutNextBtn').textContent = checkoutStep === 3 ? 'Confirmar y pagar' : 'Siguiente';
-
-    if (checkoutStep === 3) {
-      const items = cartProducts();
-      const total = items.reduce((s,p) => s + Number(p.price) * cartQty(p.id), 0);
-      const method = document.querySelector('input[name=checkoutShipping]:checked').value;
-      const methodLabel = { correo: '📮 Correo Argentino', uber: '🚗 Uber (circunvalación)', retiro: '💬 A coordinar por WhatsApp' }[method];
-      document.getElementById('summaryItems').innerHTML =
-        items.map(p => '<div class="summary-line"><span>' + escHtml(p.name) + (cartQty(p.id) > 1 ? ' ×' + cartQty(p.id) : '') + '</span><span>' + money(p.price * cartQty(p.id)) + '</span></div>').join('') +
-        '<div class="summary-line" style="margin-top:6px; padding-top:6px; border-top:1px solid #DCD0C6;"><span>Envío</span><span>' + methodLabel + '</span></div>';
-      document.getElementById('summaryTotal').innerHTML = '<span>Total</span><span>' + money(total) + '</span>';
-    }
+  function selectedShippingLabel(){
+    const sel = document.querySelector('input[name=checkoutShipping]:checked');
+    if (!sel) return null;
+    return { correo: '📮 Correo Argentino', uber: '🚗 Uber (circunvalación)', retiro: '🏪 Retiro' }[sel.value];
   }
 
-  window.checkoutBack = function(){
-    if (checkoutStep > 1) { checkoutStep--; renderCheckoutStep(); }
-  };
-
-  window.checkoutNext = async function(){
-    if (checkoutStep === 1) {
-      const name = document.getElementById('checkoutName').value.trim();
-      const phone = document.getElementById('checkoutPhone').value.trim();
-      if (!name || !phone) { showToast('Completá tu nombre y teléfono'); return; }
-      checkoutStep = 2;
-      renderCheckoutStep();
-      return;
-    }
-    if (checkoutStep === 2) {
-      const sel = document.querySelector('input[name=checkoutShipping]:checked');
-      if (!sel) { showToast('Elegí un método de envío'); return; }
-      if (sel.value === 'correo' && (!document.getElementById('checkoutAddress').value.trim() || !document.getElementById('checkoutPostal').value.trim())) {
-        showToast('Completá dirección y código postal'); return;
-      }
-      if (sel.value === 'uber' && !document.getElementById('checkoutAddress').value.trim()) {
-        showToast('Completá la dirección de entrega'); return;
-      }
-      checkoutStep = 3;
-      renderCheckoutStep();
-      return;
-    }
-    if (checkoutStep === 3) {
-      await submitCheckout();
-    }
-  };
+  function updateOrderSummary(){
+    const items = cartProducts();
+    const total = items.reduce((s,p) => s + Number(p.price) * cartQty(p.id), 0);
+    const shipLabel = selectedShippingLabel();
+    document.getElementById('orderSummaryBox').innerHTML =
+      items.map(p => '<div class="summary-line"><span>' + escHtml(p.name) + (cartQty(p.id) > 1 ? ' ×' + cartQty(p.id) : '') + '</span><span>' + money(p.price * cartQty(p.id)) + '</span></div>').join('') +
+      '<div class="summary-line" style="margin-top:6px; padding-top:6px; border-top:1px solid #DCD0C6;"><span>Envío</span><span>' + (shipLabel || '—') + '</span></div>' +
+      '<div class="cart-total-row" style="margin-top:8px; padding-top:8px;"><span>Total</span><span>' + money(total) + '</span></div>';
+  }
 
   window.submitCheckout = async function(){
-    const btn = document.getElementById('checkoutNextBtn');
+    const name = document.getElementById('checkoutName').value.trim();
+    const phone = document.getElementById('checkoutPhone').value.trim();
+    if (!name || !phone) { showToast('Completá tu nombre y teléfono'); return; }
+
+    const sel = document.querySelector('input[name=checkoutShipping]:checked');
+    if (!sel) { showToast('Elegí un método de envío'); return; }
+    const method = sel.value;
+
+    let address = document.getElementById('checkoutAddress').value.trim();
+    const postalCode = document.getElementById('checkoutPostal').value.trim();
+
+    if (method === 'correo' && (!address || !postalCode)) { showToast('Completá dirección y código postal'); return; }
+    if (method === 'uber' && !address) { showToast('Completá la dirección de entrega'); return; }
+    if (method === 'retiro' && PICKUP_POINTS.length > 0) {
+      const pickupSel = document.querySelector('input[name=pickupPoint]:checked');
+      if (!pickupSel) { showToast('Elegí dónde retirar'); return; }
+      const pt = PICKUP_POINTS.find(p => p.id === pickupSel.value);
+      address = pt.name + ' — ' + pt.address + (pt.hours ? ' (' + pt.hours + ')' : '');
+    }
+
+    const btn = document.getElementById('orderSubmitBtn');
     btn.disabled = true;
     btn.textContent = 'Generando link de pago...';
     try {
@@ -511,13 +487,7 @@ input, select, textarea { font-family: inherit; }
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           cart: Object.entries(CART).map(([productId, quantity]) => ({ productId, quantity })),
-          buyer: {
-            name: document.getElementById('checkoutName').value.trim(),
-            phone: document.getElementById('checkoutPhone').value.trim(),
-            shippingMethod: document.querySelector('input[name=checkoutShipping]:checked').value,
-            address: document.getElementById('checkoutAddress').value.trim(),
-            postalCode: document.getElementById('checkoutPostal').value.trim()
-          }
+          buyer: { name, phone, shippingMethod: method, address, postalCode }
         })
       });
       const result = await res.json();
