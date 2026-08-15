@@ -150,6 +150,32 @@ export async function handler(event) {
         return { statusCode: 200, body: JSON.stringify({ ok: true }) };
       }
 
+      case 'listPickupPoints': {
+        const { data: rows, error } = await supabase.from('pickup_points').select('*').order('created_at');
+        if (error) throw error;
+        return { statusCode: 200, body: JSON.stringify({ pickupPoints: rows }) };
+      }
+
+      case 'createPickupPoint': {
+        const { name, address, hours } = data;
+        if (!name || !address) return { statusCode: 400, body: JSON.stringify({ error: 'Falta nombre o dirección' }) };
+        const { data: row, error } = await supabase
+          .from('pickup_points')
+          .insert({ name, address, hours: hours || null })
+          .select()
+          .single();
+        if (error) throw error;
+        return { statusCode: 200, body: JSON.stringify({ pickupPoint: row }) };
+      }
+
+      case 'deletePickupPoint': {
+        const { id } = data;
+        if (!id) return { statusCode: 400, body: JSON.stringify({ error: 'Falta id' }) };
+        const { error } = await supabase.from('pickup_points').delete().eq('id', id);
+        if (error) throw error;
+        return { statusCode: 200, body: JSON.stringify({ ok: true }) };
+      }
+
       case 'updateSettings': {
         const { store_name, tagline, whatsapp } = data;
         const { data: row, error } = await supabase
