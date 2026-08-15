@@ -55,13 +55,22 @@ input, select, textarea { font-family: inherit; }
 .card-cat { font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase; color: #9C4A5C; font-weight: 600; }
 .card-name { font-family: 'Fraunces', serif; font-size: 15.5px; line-height: 1.25; margin: 3px 0 6px; min-height: 38px; }
 .card-price { font-size: 15px; font-weight: 700; color: #B98B3E; font-family: 'Fraunces', serif; }
-.cta { margin-top: 8px; width: 100%; border: none; border-radius: 8px; padding: 9px 10px; font-size: 12.5px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; }
-.cta svg { width: 14px; height: 14px; }
+.cta { margin-top: 8px; width: 100%; border: none; border-radius: 8px; padding: 7px 10px; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 5px; }
+.cta svg { width: 13px; height: 13px; }
 .cta-add { background: #2E1A24; color: #fff; }
 .cta-add:hover { background: #3B2530; }
-.cta-add.in-cart { background: #4C7A5B; }
 .cta:disabled { background: #C9BFB6; color: #fff; cursor: not-allowed; }
 .sold-label { margin-top: 10px; text-align: center; font-size: 12px; color: #A98F86; font-style: italic; }
+.stock-hint { font-size: 11px; color: #9C4A5C; font-weight: 600; margin-top: 2px; }
+.qty-stepper { margin-top: 8px; display: flex; align-items: center; justify-content: space-between; background: #4C7A5B; border-radius: 8px; padding: 4px; }
+.qty-stepper button { background: rgba(255,255,255,0.15); border: none; color: #fff; width: 26px; height: 26px; border-radius: 6px; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.qty-stepper button:hover { background: rgba(255,255,255,0.28); }
+.qty-stepper button:disabled { opacity: 0.4; cursor: not-allowed; }
+.qty-stepper .qty-count { color: #fff; font-size: 13px; font-weight: 700; }
+.qty-stepper.compact { padding: 2px; width: fit-content; }
+.qty-stepper.compact button { width: 22px; height: 22px; font-size: 13px; }
+.qty-stepper.compact .qty-count { font-size: 12px; min-width: 16px; text-align: center; }
+.qty-stepper.neutral { background: #2E1A24; }
 
 .wsp-float { position: fixed; left: 20px; bottom: 20px; z-index: 5; background: #25D366; color: #fff; border: none; border-radius: 999px; width: 54px; height: 54px; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(37,211,102,0.4); }
 .wsp-float svg { width: 26px; height: 26px; }
@@ -319,11 +328,14 @@ input, select, textarea { font-family: inherit; }
   function loadCart(){
     try {
       const raw = localStorage.getItem('xiomara_cart');
-      CART = raw ? JSON.parse(raw) : [];
-    } catch { CART = []; }
-    CART = CART.filter(id => {
+      const parsed = raw ? JSON.parse(raw) : {};
+      // Compatibilidad con el carrito viejo (lista simple de IDs).
+      CART = Array.isArray(parsed) ? Object.fromEntries(parsed.map(id => [id, 1])) : (parsed || {});
+    } catch { CART = {}; }
+    Object.keys(CART).forEach(id => {
       const p = PRODUCTS.find(x => x.id === id);
-      return p && p.status === 'disponible';
+      if (!p || Number(p.stock) <= 0) delete CART[id];
+      else if (CART[id] > p.stock) CART[id] = p.stock;
     });
     saveCart();
   }
@@ -331,19 +343,56 @@ input, select, textarea { font-family: inherit; }
     try { localStorage.setItem('xiomara_cart', JSON.stringify(CART)); } catch {}
     renderCartBadge();
   }
-  function isInCart(id){ return CART.includes(id); }
-  window.toggleCart = function(id){
-    if (isInCart(id)) CART = CART.filter(x => x !== id);
-    else CART.push(id);
+  function cartQty(id){ return CART[id] || 0; }
+  function isInCart(id){ return cartQty(id) > 0; }
+  function stockOf(id){ const p = PRODUCTS.find(x => x.id === id); return p ? Number(p.stock) : 0; }
+
+  window.addToCart = function(id){
+    const stock = stockOf(id);
+    if (stock <= 0) return;
+    CART[id] = Math.min(stock, cartQty(id) + 1);
     saveCart();
     render();
+    refreshOpenCart();
   };
+  window.incrementCartQty = function(id){
+    const stock = stockOf(id);
+    if (cartQty(id) >= stock) { showToast('No hay más stock disponible'); return; }
+    CART[id] = cartQty(id) + 1;
+    saveCart();
+    render();
+    refreshOpenCart();
+  };
+  window.decrementCartQty = function(id){
+    const next = cartQty(id) - 1;
+    if (next <= 0) delete CART[id];
+    else CART[id] = next;
+    saveCart();
+    render();
+    refreshOpenCart();
+  };
+  function refreshOpenCart(){
+    if (document.getElementById('cartOverlay').classList.contains('show')) openCart();
+    if (document.getElementById('detailOverlay').classList.contains('show') && detailOpenId) openDetail(detailOpenId);
+  }
   function renderCartBadge(){
     const badge = document.getElementById('cartBadge');
-    if (CART.length > 0) { badge.style.display = 'flex'; badge.textContent = CART.length; }
+    const total = Object.values(CART).reduce((s,q) => s + q, 0);
+    if (total > 0) { badge.style.display = 'flex'; badge.textContent = total; }
     else badge.style.display = 'none';
   }
-  function cartProducts(){ return CART.map(id => PRODUCTS.find(p => p.id === id)).filter(Boolean); }
+  function cartProducts(){ return Object.keys(CART).map(id => PRODUCTS.find(p => p.id === id)).filter(Boolean); }
+
+  function qtyStepperHtml(id, compact, neutral){
+    const stock = stockOf(id);
+    const qty = cartQty(id);
+    const cls = 'qty-stepper' + (compact ? ' compact' : '') + (neutral ? ' neutral' : '');
+    return '<div class="' + cls + '">' +
+      '<button onclick="event.stopPropagation(); decrementCartQty(\'' + id + '\')">−</button>' +
+      '<span class="qty-count">' + qty + '</span>' +
+      '<button onclick="event.stopPropagation(); incrementCartQty(\'' + id + '\')" ' + (qty >= stock ? 'disabled' : '') + '>+</button>' +
+    '</div>';
+  }
 
   window.openCart = function(){
     const items = cartProducts();
@@ -351,12 +400,12 @@ input, select, textarea { font-family: inherit; }
     if (items.length === 0) {
       list.innerHTML = '<p style="color:#8A7268; text-align:center; padding:20px 0;">Todavía no agregaste nada.</p>';
     } else {
-      const total = items.reduce((s,p) => s + Number(p.price), 0);
+      const total = items.reduce((s,p) => s + Number(p.price) * cartQty(p.id), 0);
       list.innerHTML = items.map(p => (
         '<div class="cart-item">' +
           '<div class="cart-item-img">' + ((p.images && p.images[0]) ? '<img src="' + escHtml(p.images[0]) + '">' : (p.image ? '<img src="' + escHtml(p.image) + '">' : iconFor(p.category))) + '</div>' +
-          '<div><div class="cart-item-name">' + escHtml(p.name) + '</div><div class="cart-item-price">' + money(p.price) + '</div></div>' +
-          '<button class="cart-item-remove" onclick="toggleCart(\'' + p.id + '\'); openCart();">✕</button>' +
+          '<div><div class="cart-item-name">' + escHtml(p.name) + '</div><div class="cart-item-price">' + money(p.price) + ' c/u</div></div>' +
+          '<div style="margin-left:auto;">' + qtyStepperHtml(p.id, true, true) + '</div>' +
         '</div>'
       )).join('') + '<div class="cart-total-row"><span>Total</span><span>' + money(total) + '</span></div>';
     }
@@ -411,11 +460,11 @@ input, select, textarea { font-family: inherit; }
 
     if (checkoutStep === 3) {
       const items = cartProducts();
-      const total = items.reduce((s,p) => s + Number(p.price), 0);
+      const total = items.reduce((s,p) => s + Number(p.price) * cartQty(p.id), 0);
       const method = document.querySelector('input[name=checkoutShipping]:checked').value;
       const methodLabel = { correo: '📮 Correo Argentino', uber: '🚗 Uber (circunvalación)', retiro: '💬 A coordinar por WhatsApp' }[method];
       document.getElementById('summaryItems').innerHTML =
-        items.map(p => '<div class="summary-line"><span>' + escHtml(p.name) + '</span><span>' + money(p.price) + '</span></div>').join('') +
+        items.map(p => '<div class="summary-line"><span>' + escHtml(p.name) + (cartQty(p.id) > 1 ? ' ×' + cartQty(p.id) : '') + '</span><span>' + money(p.price * cartQty(p.id)) + '</span></div>').join('') +
         '<div class="summary-line" style="margin-top:6px; padding-top:6px; border-top:1px solid #DCD0C6;"><span>Envío</span><span>' + methodLabel + '</span></div>';
       document.getElementById('summaryTotal').innerHTML = '<span>Total</span><span>' + money(total) + '</span>';
     }
@@ -461,7 +510,7 @@ input, select, textarea { font-family: inherit; }
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          cart: CART,
+          cart: Object.entries(CART).map(([productId, quantity]) => ({ productId, quantity })),
           buyer: {
             name: document.getElementById('checkoutName').value.trim(),
             phone: document.getElementById('checkoutPhone').value.trim(),
@@ -512,7 +561,8 @@ input, select, textarea { font-family: inherit; }
     grid.style.display = 'grid'; empty.style.display = 'none';
 
     grid.innerHTML = list.map(p => {
-      const sold = p.status === 'vendido';
+      const stock = Number(p.stock) || 0;
+      const sold = stock <= 0;
       const inCart = isInCart(p.id);
       const thumb = (p.images && p.images[0]) ? p.images[0] : p.image;
       const imgHtml = thumb
@@ -522,20 +572,21 @@ input, select, textarea { font-family: inherit; }
       return '' +
       '<div class="card ' + (sold?'sold':'') + '">' +
         '<div class="tag-hole"></div>' +
-        '<div class="card-img" onclick="openDetail(\'' + p.id + '\')" style="cursor:pointer;">' + imgHtml + '<div class="ribbon">Vendido</div></div>' +
+        '<div class="card-img" onclick="openDetail(\'' + p.id + '\')" style="cursor:pointer;">' + imgHtml + '<div class="ribbon">Agotado</div></div>' +
         '<div class="card-body">' +
           '<div onclick="openDetail(\'' + p.id + '\')" style="cursor:pointer;">' +
             '<div class="card-cat">' + escHtml(p.category || 'Sin categoría') + '</div>' +
             '<div class="card-name">' + escHtml(p.name) + '</div>' +
             '<div class="card-price">' + money(p.price) + '</div>' +
+            (!sold && stock <= 3 ? '<div class="stock-hint">Quedan ' + stock + '</div>' : '') +
           '</div>' +
           (sold
-            ? '<div class="sold-label">Ya no está disponible</div>'
-            : '<button class="cta cta-add ' + (inCart?'in-cart':'') + '" onclick="toggleCart(\'' + p.id + '\')">' +
-                (inCart
-                  ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>En el carrito'
-                  : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Agregar al carrito') +
-              '</button>'
+            ? '<div class="sold-label">Agotado</div>'
+            : (inCart
+                ? qtyStepperHtml(p.id, false, false)
+                : '<button class="cta cta-add" onclick="addToCart(\'' + p.id + '\')">' +
+                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Agregar al carrito' +
+                  '</button>')
           ) +
         '</div>' +
       '</div>';
@@ -545,11 +596,14 @@ input, select, textarea { font-family: inherit; }
   let detailSlides = [];
   let detailSlideIndex = 0;
   let detailSold = false;
+  let detailOpenId = null;
 
   window.openDetail = function(id){
     const p = PRODUCTS.find(x => x.id === id);
     if (!p) return;
-    detailSold = p.status === 'vendido';
+    detailOpenId = id;
+    const stock = Number(p.stock) || 0;
+    detailSold = stock <= 0;
     const inCart = isInCart(p.id);
 
     detailSlides = [
@@ -566,17 +620,18 @@ input, select, textarea { font-family: inherit; }
       '<div style="padding:18px 20px 20px;">' +
         '<div class="card-cat">' + escHtml(p.category || 'Sin categoría') + '</div>' +
         '<div class="serif" style="font-size:20px; margin:4px 0 8px;">' + escHtml(p.name) + '</div>' +
-        '<div class="card-price" style="font-size:19px; margin-bottom:12px;">' + money(p.price) + '</div>' +
+        '<div class="card-price" style="font-size:19px; margin-bottom:2px;">' + money(p.price) + '</div>' +
+        (!detailSold && stock <= 3 ? '<div class="stock-hint" style="margin-bottom:10px;">Quedan ' + stock + '</div>' : '<div style="margin-bottom:12px;"></div>') +
         '<div style="font-size:13.5px; color:#4A3B36; line-height:1.5; white-space:pre-wrap; margin-bottom:16px;">' +
           (p.description ? escHtml(p.description) : '<span style="color:#A9998F; font-style:italic;">Sin descripción todavía.</span>') +
         '</div>' +
         (detailSold
-          ? '<div class="sold-label" style="margin-top:0;">Ya no está disponible</div>'
-          : '<button class="cta cta-add ' + (inCart?'in-cart':'') + '" onclick="toggleCart(\'' + p.id + '\'); openDetail(\'' + p.id + '\');">' +
-              (inCart
-                ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>En el carrito'
-                : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Agregar al carrito') +
-            '</button>'
+          ? '<div class="sold-label" style="margin-top:0;">Agotado</div>'
+          : (inCart
+              ? qtyStepperHtml(p.id, false, false)
+              : '<button class="cta cta-add" onclick="addToCart(\'' + p.id + '\'); openDetail(\'' + p.id + '\');">' +
+                  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Agregar al carrito' +
+                '</button>')
         ) +
       '</div>';
 

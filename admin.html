@@ -104,6 +104,7 @@ input, select, textarea { font-family: inherit; }
 
   <div class="tabs">
     <button class="tab active" data-view="viewProducts" onclick="switchTab('viewProducts')">Productos</button>
+    <button class="tab" data-view="viewCategories" onclick="switchTab('viewCategories')">Categorías</button>
     <button class="tab" data-view="viewOrders" onclick="switchTab('viewOrders')">Pedidos</button>
     <button class="tab" data-view="viewSettings" onclick="switchTab('viewSettings')">Ajustes</button>
   </div>
@@ -115,6 +116,15 @@ input, select, textarea { font-family: inherit; }
         <button class="btn primary" onclick="openForm()">+ Agregar producto</button>
       </div>
       <div id="productsList" class="plist"><div class="loading">Cargando...</div></div>
+    </div>
+
+    <div class="view" id="viewCategories">
+      <div class="section-head"><h2>Categorías</h2></div>
+      <div class="field" style="display:flex; gap:8px; align-items:flex-end;">
+        <div style="flex:1;"><label style="display:block; font-size:11.5px; font-weight:600; color:#6B5850; margin-bottom:4px;">Nueva categoría</label><input id="newCatName" placeholder="Ej: Bolsos"></div>
+        <button class="btn primary" style="flex:none; padding:9px 16px;" onclick="addCategory()">Agregar</button>
+      </div>
+      <div id="categoriesList" style="margin-top:16px;"><div class="loading">Cargando...</div></div>
     </div>
 
     <div class="view" id="viewOrders">
@@ -139,7 +149,10 @@ input, select, textarea { font-family: inherit; }
     <input type="hidden" id="formId">
     <div class="field"><label>Nombre del producto</label><input id="formName" placeholder="Ej: Cartera de cuero símil"></div>
     <div class="field"><label>Precio (ARS)</label><input id="formPrice" type="number" placeholder="Ej: 24000"></div>
-    <div class="field"><label>Categoría</label><input id="formCat" list="catList" placeholder="Ej: Bolsos"><datalist id="catList"></datalist></div>
+    <div class="field"><label>Categoría</label>
+      <select id="formCat"><option value="">Sin categoría</option></select>
+      <div class="field-hint">¿Falta la categoría que necesitás? Agregala desde la pestaña "Categorías".</div>
+    </div>
     <div class="field"><label>Descripción (opcional)</label><textarea id="formDesc" rows="3" placeholder="Material, medidas, detalles..."></textarea></div>
     <div class="field"><label>Fotos del producto (hasta 3)</label>
       <div id="imgThumbs" style="display:flex; gap:8px; margin-bottom:6px;"></div>
@@ -153,11 +166,9 @@ input, select, textarea { font-family: inherit; }
       <div class="field-hint" id="videoUploadHint">Un clip cortito (idealmente menos de 20 segundos). Máximo 25 MB.</div>
       <input type="hidden" id="formVideo">
     </div>
-    <div class="field"><label>Estado</label>
-      <div class="radio-row">
-        <label><input type="radio" name="formStatus" value="disponible" checked> Disponible</label>
-        <label><input type="radio" name="formStatus" value="vendido"> Vendido</label>
-      </div>
+    <div class="field"><label>Stock disponible</label>
+      <input id="formStock" type="number" min="0" step="1" placeholder="Ej: 1">
+      <div class="field-hint">0 = se muestra como agotado en la tienda.</div>
     </div>
     <div class="panel-actions">
       <button class="btn ghost" onclick="closeOverlay('formOverlay')">Cancelar</button>
@@ -315,8 +326,11 @@ input, select, textarea { font-family: inherit; }
     document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === view));
     document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === view));
     if (view === 'viewOrders') loadOrders();
+    if (view === 'viewCategories') loadCategories();
   };
 
+
+  let CATEGORIES = [];
 
   async function loadEverything(){
     try {
@@ -326,8 +340,63 @@ input, select, textarea { font-family: inherit; }
     document.getElementById('setName').value = SETTINGS.store_name || '';
     document.getElementById('setTagline').value = SETTINGS.tagline || '';
     document.getElementById('setWsp').value = SETTINGS.whatsapp || '';
+    await loadCategoriesQuiet();
     await loadProducts();
   }
+
+  async function loadCategoriesQuiet(){
+    try { CATEGORIES = await sbFetch('categories?select=*&order=name'); } catch { CATEGORIES = []; }
+    populateCatSelect();
+  }
+  function populateCatSelect(){
+    const sel = document.getElementById('formCat');
+    const current = sel.value;
+    sel.innerHTML = '<option value="">Sin categoría</option>' + CATEGORIES.map(c => '<option value="' + escHtml(c.name) + '">' + escHtml(c.name) + '</option>').join('');
+    sel.value = current;
+  }
+
+  // ---------- categorías ----------
+  async function loadCategories(){
+    document.getElementById('categoriesList').innerHTML = '<div class="loading">Cargando...</div>';
+    try {
+      CATEGORIES = await sbFetch('categories?select=*&order=name');
+      populateCatSelect();
+      renderCategories();
+    } catch (e) {
+      document.getElementById('categoriesList').innerHTML = '<p class="empty-msg">No se pudieron cargar las categorías.</p>';
+    }
+  }
+  function renderCategories(){
+    const list = document.getElementById('categoriesList');
+    if (CATEGORIES.length === 0) {
+      list.innerHTML = '<p class="empty-msg">Todavía no creaste ninguna categoría.</p>';
+      return;
+    }
+    list.innerHTML = CATEGORIES.map(c => (
+      '<div class="prow">' +
+        '<div style="flex:1; font-weight:600; font-size:14px;">' + escHtml(c.name) + '</div>' +
+        '<button class="icon-btn danger" title="Eliminar" onclick="deleteCategory(\'' + c.id + '\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0-1 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 6"/></svg></button>' +
+      '</div>'
+    )).join('');
+  }
+  window.addCategory = async function(){
+    const input = document.getElementById('newCatName');
+    const name = input.value.trim();
+    if (!name) { showToast('Escribí un nombre'); return; }
+    try {
+      await callAdmin('createCategory', { name });
+      input.value = '';
+      await loadCategories();
+      showToast('Categoría agregada');
+    } catch (e) { showToast(e.message); }
+  };
+  window.deleteCategory = async function(id){
+    try {
+      await callAdmin('deleteCategory', { id });
+      await loadCategories();
+      showToast('Categoría eliminada');
+    } catch (e) { showToast(e.message); }
+  };
 
   // ---------- productos ----------
   async function loadProducts(){
@@ -345,11 +414,10 @@ input, select, textarea { font-family: inherit; }
       list.innerHTML = '<p class="empty-msg">Todavía no cargaste ningún producto.</p>';
       return;
     }
-    document.getElementById('catList').innerHTML = [...new Set(PRODUCTS.map(p => p.category).filter(Boolean))]
-      .map(c => '<option value="' + escHtml(c) + '">').join('');
 
     list.innerHTML = PRODUCTS.map(p => {
-      const sold = p.status === 'vendido';
+      const stock = Number(p.stock) || 0;
+      const sold = stock <= 0;
       const thumb = (p.images && p.images[0]) ? p.images[0] : p.image;
       const isConfirming = confirmingDeleteId === p.id;
       return (
@@ -357,13 +425,13 @@ input, select, textarea { font-family: inherit; }
           '<div class="prow-img">' + (thumb ? '<img src="' + escHtml(thumb) + '">' : '') + '</div>' +
           '<div>' +
             '<div class="prow-name">' + escHtml(p.name) + '</div>' +
-            '<div class="prow-meta">' + money(p.price) + ' · ' + escHtml(p.category || 'Sin categoría') + ' · ' + (sold ? 'Vendido' : 'Disponible') + '</div>' +
+            '<div class="prow-meta">' + money(p.price) + ' · ' + escHtml(p.category || 'Sin categoría') + ' · ' + (sold ? 'Agotado' : ('Stock: ' + stock)) + '</div>' +
           '</div>' +
           '<div class="prow-actions">' +
             (isConfirming
               ? '<div class="confirm-del">¿Borrar? <button onclick="deleteProduct(\'' + p.id + '\')">Sí</button><button onclick="cancelDelete()">No</button></div>'
-              : '<button class="icon-btn toggle ' + (!sold?'is-avail':'') + '" title="Cambiar estado" onclick="toggleStatus(\'' + p.id + '\',\'' + (sold?'disponible':'vendido') + '\')">' +
-                  (sold ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>') +
+              : '<button class="icon-btn toggle ' + (!sold?'is-avail':'') + '" title="' + (sold?'Marcar disponible (stock 1)':'Marcar agotado') + '" onclick="quickSetStock(\'' + p.id + '\',' + (sold?1:0) + ')">' +
+                  (sold ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>') +
                 '</button>' +
                 '<button class="icon-btn" title="Editar" onclick="openForm(\'' + p.id + '\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>' +
                 '<button class="icon-btn danger" title="Eliminar" onclick="confirmDelete(\'' + p.id + '\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0-1 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 6"/></svg></button>'
@@ -385,9 +453,9 @@ input, select, textarea { font-family: inherit; }
       showToast('Producto eliminado');
     } catch (e) { showToast(e.message); }
   };
-  window.toggleStatus = async function(id, newStatus){
+  window.quickSetStock = async function(id, newStock){
     try {
-      const { product } = await callAdmin('toggleStatus', { id, status: newStatus });
+      const { product } = await callAdmin('setStock', { id, stock: newStock });
       PRODUCTS = PRODUCTS.map(p => p.id === id ? product : p);
       renderProducts();
     } catch (e) { showToast(e.message); }
@@ -397,6 +465,7 @@ input, select, textarea { font-family: inherit; }
     document.getElementById('formId').value = id || '';
     document.getElementById('formImgFile').value = '';
     document.getElementById('formVideoFile').value = '';
+    populateCatSelect();
     if (id) {
       const p = PRODUCTS.find(x => x.id === id);
       document.getElementById('formTitle').textContent = 'Editar producto';
@@ -404,6 +473,7 @@ input, select, textarea { font-family: inherit; }
       document.getElementById('formPrice').value = p.price;
       document.getElementById('formCat').value = p.category || '';
       document.getElementById('formDesc').value = p.description || '';
+      document.getElementById('formStock').value = Number(p.stock) || 0;
       formImages = (p.images && p.images.length) ? [...p.images] : (p.image ? [p.image] : []);
       renderThumbs();
       document.getElementById('formVideo').value = p.video || '';
@@ -415,19 +485,18 @@ input, select, textarea { font-family: inherit; }
         document.getElementById('videoPreview').style.display = 'none';
         document.getElementById('removeVideoBtn').style.display = 'none';
       }
-      document.querySelector('input[name=formStatus][value="' + p.status + '"]').checked = true;
     } else {
       document.getElementById('formTitle').textContent = 'Nuevo producto';
       document.getElementById('formName').value = '';
       document.getElementById('formPrice').value = '';
       document.getElementById('formCat').value = '';
       document.getElementById('formDesc').value = '';
+      document.getElementById('formStock').value = 1;
       formImages = [];
       renderThumbs();
       document.getElementById('formVideo').value = '';
       document.getElementById('videoPreview').style.display = 'none';
       document.getElementById('removeVideoBtn').style.display = 'none';
-      document.querySelector('input[name=formStatus][value="disponible"]').checked = true;
     }
     document.getElementById('formOverlay').classList.add('show');
   };
@@ -440,14 +509,14 @@ input, select, textarea { font-family: inherit; }
     const description = document.getElementById('formDesc').value.trim();
     const images = formImages;
     const video = document.getElementById('formVideo').value.trim();
-    const status = document.querySelector('input[name=formStatus]:checked').value;
+    const stock = document.getElementById('formStock').value;
     if (!name || !price) { showToast('Completá al menos nombre y precio'); return; }
     try {
       if (id) {
-        const { product } = await callAdmin('updateProduct', { id, name, price, category, description, images, video, status });
+        const { product } = await callAdmin('updateProduct', { id, name, price, category, description, images, video, stock });
         PRODUCTS = PRODUCTS.map(p => p.id === id ? product : p);
       } else {
-        const { product } = await callAdmin('createProduct', { name, price, category, description, images, video, status });
+        const { product } = await callAdmin('createProduct', { name, price, category, description, images, video, stock });
         PRODUCTS.unshift(product);
       }
       closeOverlay('formOverlay');
