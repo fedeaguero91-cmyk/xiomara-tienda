@@ -13,13 +13,7 @@ button { font-family: inherit; cursor: pointer; }
 input, select, textarea { font-family: inherit; }
 .serif { font-family: 'Baloo 2', cursive; }
 
-.header { background: linear-gradient(135deg, #F2739D, #EEC06E); color: #FFF8FB; padding: 32px 24px 24px; position: sticky; top: 0; z-index: 10; overflow: hidden; box-shadow: 0 4px 14px rgba(214,72,127,0.18); transition: padding 0.15s ease; will-change: padding; }
-.header.scrolled { padding: 12px 24px 10px; box-shadow: 0 6px 18px rgba(90,37,64,0.22); }
-.header.scrolled .header-sparkles { opacity: 0; }
-.header.scrolled .tagline { max-height: 0; opacity: 0; margin-top: 0; }
-.header.scrolled .brand { font-size: 22px; }
-.header.scrolled .search-row { margin-top: 10px; }
-.header.scrolled .chips { margin-top: 10px; }
+.header { background: linear-gradient(135deg, #F2739D, #EEC06E); color: #FFF8FB; padding: 32px 24px 24px; position: relative; overflow: hidden; box-shadow: 0 4px 14px rgba(214,72,127,0.18); }
 .header-sparkles { position: absolute; inset: 0; pointer-events: none; transition: opacity 0.2s ease; }
 .header-sparkles svg { position: absolute; filter: drop-shadow(0 0 3px rgba(255,255,255,0.6)); animation: twinkle 2.6s ease-in-out infinite; }
 .spark-1 { top: 14px; left: 40%; width: 14px; height: 14px; animation-delay: 0s; }
@@ -29,8 +23,8 @@ input, select, textarea { font-family: inherit; }
 @media (prefers-reduced-motion: reduce) { .header-sparkles svg { animation: none; opacity: 0.7; } }
 
 .brand-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; max-width: 1100px; margin: 0 auto; position: relative; z-index: 1; }
-.brand { font-family: 'Baloo 2', cursive; font-weight: 800; font-size: 32px; letter-spacing: 0.3px; text-shadow: 0 2px 10px rgba(0,0,0,0.08); transition: font-size 0.15s ease; }
-.tagline { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #FFE9F1; margin-top: 2px; font-weight: 600; max-height: 20px; opacity: 1; overflow: hidden; transition: max-height 0.15s ease, opacity 0.15s ease, margin-top 0.15s ease; }
+.brand { font-family: 'Baloo 2', cursive; font-weight: 800; font-size: 32px; letter-spacing: 0.3px; text-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+.tagline { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #FFE9F1; margin-top: 2px; font-weight: 600; }
 .header-right { display: flex; align-items: center; gap: 14px; }
 .count { font-size: 12px; color: #FFF0F6; white-space: nowrap; font-weight: 500; }
 .count b { color: #fff; font-weight: 700; }
@@ -39,11 +33,11 @@ input, select, textarea { font-family: inherit; }
 .cart-btn svg { width: 18px; height: 18px; }
 .cart-badge { position: absolute; top: -6px; right: -6px; background: #FFD966; color: #7A4A00; font-size: 11px; font-weight: 800; border-radius: 999px; min-width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; padding: 0 4px; }
 
-.search-row { display: flex; gap: 8px; margin-top: 18px; max-width: 1100px; margin-left: auto; margin-right: auto; position: relative; z-index: 1; transition: margin-top 0.15s ease; }
+.search-row { display: flex; gap: 8px; margin-top: 18px; max-width: 1100px; margin-left: auto; margin-right: auto; position: relative; z-index: 1; }
 .search { flex: 1; background: rgba(255,255,255,0.22); border: 1px solid rgba(255,255,255,0.35); border-radius: 12px; padding: 10px 14px; color: #fff; font-size: 14px; outline: none; font-weight: 500; }
 .search::placeholder { color: #FFE4EF; }
 .search:focus { background: rgba(255,255,255,0.3); border-color: #FFD966; }
-.chips { display: flex; gap: 8px; overflow-x: auto; margin-top: 14px; padding-bottom: 2px; max-width: 1100px; margin-left: auto; margin-right: auto; scrollbar-width: none; position: relative; z-index: 1; transition: margin-top 0.15s ease; }
+.chips { display: flex; gap: 8px; overflow-x: auto; margin-top: 14px; padding-bottom: 2px; max-width: 1100px; margin-left: auto; margin-right: auto; scrollbar-width: none; position: relative; z-index: 1; }
 .chips::-webkit-scrollbar { display: none; }
 .chip { flex-shrink: 0; border: 1px solid rgba(255,255,255,0.4); background: rgba(255,255,255,0.12); color: #fff; padding: 6px 13px; border-radius: 999px; font-size: 12px; font-weight: 600; }
 .chip.active { background: #FFD966; border-color: #FFD966; color: #7A4A00; font-weight: 700; }
@@ -88,6 +82,10 @@ input, select, textarea { font-family: inherit; }
 
 .wsp-float { position: fixed; left: 20px; bottom: 20px; z-index: 5; background: #25D366; color: #fff; border: none; border-radius: 999px; width: 54px; height: 54px; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(37,211,102,0.4); }
 .wsp-float svg { width: 26px; height: 26px; }
+.cart-float { position: fixed; right: 20px; bottom: 20px; z-index: 5; background: linear-gradient(135deg, #E0699E, #D9A25C); color: #fff; border: none; border-radius: 999px; width: 54px; height: 54px; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(214,72,127,0.4); opacity: 0; transform: translateY(12px) scale(0.9); pointer-events: none; transition: opacity 0.2s ease, transform 0.2s ease; }
+.cart-float.show { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+.cart-float svg { width: 24px; height: 24px; }
+.cart-float .cart-badge { top: -4px; right: -4px; }
 
 .overlay { position: fixed; inset: 0; background: rgba(90,37,64,0.45); display: none; align-items: center; justify-content: center; z-index: 20; padding: 16px; }
 .overlay.show { display: flex; }
@@ -179,6 +177,11 @@ input, select, textarea { font-family: inherit; }
 
 <button class="wsp-float" id="wspFloat" style="display:none;" onclick="openWhatsapp()" title="Consultanos por WhatsApp">
   <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2Zm5.7 14.2c-.2.6-1.3 1.2-1.9 1.3-.5.1-1.1.1-1.8-.1-.4-.1-.9-.3-1.6-.6-2.7-1.2-4.5-3.9-4.6-4.1-.1-.2-1.1-1.5-1.1-2.8 0-1.3.7-2 1-2.2.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .6.5.2.5.7 1.8.8 1.9.1.2.1.4 0 .6-.1.2-.2.3-.3.5-.2.2-.3.3-.5.5-.2.2-.3.4-.1.7.2.3.9 1.5 1.9 2.4 1.3 1.2 2.4 1.5 2.7 1.7.3.2.5.1.7-.1.2-.2.8-.9 1-1.2.2-.3.4-.2.7-.1.3.1 1.8.9 2.1 1 .3.2.5.2.6.3.1.2.1.7-.1 1.3Z"/></svg>
+</button>
+
+<button class="cart-float" id="cartFloat" onclick="openCart()" title="Ver carrito">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.6 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>
+  <span id="cartFloatBadge" class="cart-badge" style="display:none;">0</span>
 </button>
 
 <div class="overlay" id="orderOverlay">
@@ -375,9 +378,12 @@ input, select, textarea { font-family: inherit; }
   }
   function renderCartBadge(){
     const badge = document.getElementById('cartBadge');
+    const floatBadge = document.getElementById('cartFloatBadge');
     const total = Object.values(CART).reduce((s,q) => s + q, 0);
-    if (total > 0) { badge.style.display = 'flex'; badge.textContent = total; }
-    else badge.style.display = 'none';
+    [badge, floatBadge].forEach(el => {
+      if (total > 0) { el.style.display = 'flex'; el.textContent = total; }
+      else el.style.display = 'none';
+    });
   }
   function cartProducts(){ return Object.keys(CART).map(id => PRODUCTS.find(p => p.id === id)).filter(Boolean); }
 
@@ -699,20 +705,19 @@ input, select, textarea { font-family: inherit; }
 
   document.getElementById('searchInput').addEventListener('input', (e) => { searchTerm = e.target.value; render(); });
 
-  // Header compacto al hacer scroll: deja más lugar a los productos, sin perder buscador/carrito/categorías a mano.
-  const headerEl = document.querySelector('.header');
+  // Carrito flotante: aparece al bajar, cuando el header (con el carrito de arriba) ya no se ve.
+  const cartFloatEl = document.getElementById('cartFloat');
   let scrollTicking = false;
-  function handleHeaderScroll(){
-    headerEl.classList.toggle('scrolled', window.scrollY > 40);
+  function handleScroll(){
+    cartFloatEl.classList.toggle('show', window.scrollY > 220);
     scrollTicking = false;
   }
   window.addEventListener('scroll', () => {
     if (!scrollTicking) {
-      requestAnimationFrame(handleHeaderScroll);
+      requestAnimationFrame(handleScroll);
       scrollTicking = true;
     }
   }, { passive: true });
-  handleHeaderScroll();
 
   const params = new URLSearchParams(window.location.search);
   const pago = params.get('pago');
