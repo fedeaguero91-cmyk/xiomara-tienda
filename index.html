@@ -13,7 +13,7 @@ button { font-family: inherit; cursor: pointer; }
 input, select, textarea { font-family: inherit; }
 .serif { font-family: 'Baloo 2', cursive; }
 
-.header { background: linear-gradient(135deg, #F2739D, #EEC06E); color: #FFF8FB; padding: 32px 24px 24px; position: sticky; top: 0; z-index: 10; overflow: hidden; box-shadow: 0 4px 14px rgba(214,72,127,0.18); transition: padding 0.25s ease, box-shadow 0.25s ease; }
+.header { background: linear-gradient(135deg, #F2739D, #EEC06E); color: #FFF8FB; padding: 32px 24px 24px; position: sticky; top: 0; z-index: 10; overflow: hidden; box-shadow: 0 4px 14px rgba(214,72,127,0.18); transition: padding 0.15s ease; will-change: padding; }
 .header.scrolled { padding: 12px 24px 10px; box-shadow: 0 6px 18px rgba(90,37,64,0.22); }
 .header.scrolled .header-sparkles { opacity: 0; }
 .header.scrolled .tagline { max-height: 0; opacity: 0; margin-top: 0; }
@@ -29,8 +29,8 @@ input, select, textarea { font-family: inherit; }
 @media (prefers-reduced-motion: reduce) { .header-sparkles svg { animation: none; opacity: 0.7; } }
 
 .brand-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; max-width: 1100px; margin: 0 auto; position: relative; z-index: 1; }
-.brand { font-family: 'Baloo 2', cursive; font-weight: 800; font-size: 32px; letter-spacing: 0.3px; text-shadow: 0 2px 10px rgba(0,0,0,0.08); transition: font-size 0.25s ease; }
-.tagline { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #FFE9F1; margin-top: 2px; font-weight: 600; max-height: 20px; opacity: 1; overflow: hidden; transition: max-height 0.25s ease, opacity 0.2s ease, margin-top 0.25s ease; }
+.brand { font-family: 'Baloo 2', cursive; font-weight: 800; font-size: 32px; letter-spacing: 0.3px; text-shadow: 0 2px 10px rgba(0,0,0,0.08); transition: font-size 0.15s ease; }
+.tagline { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #FFE9F1; margin-top: 2px; font-weight: 600; max-height: 20px; opacity: 1; overflow: hidden; transition: max-height 0.15s ease, opacity 0.15s ease, margin-top 0.15s ease; }
 .header-right { display: flex; align-items: center; gap: 14px; }
 .count { font-size: 12px; color: #FFF0F6; white-space: nowrap; font-weight: 500; }
 .count b { color: #fff; font-weight: 700; }
@@ -39,11 +39,11 @@ input, select, textarea { font-family: inherit; }
 .cart-btn svg { width: 18px; height: 18px; }
 .cart-badge { position: absolute; top: -6px; right: -6px; background: #FFD966; color: #7A4A00; font-size: 11px; font-weight: 800; border-radius: 999px; min-width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; padding: 0 4px; }
 
-.search-row { display: flex; gap: 8px; margin-top: 18px; max-width: 1100px; margin-left: auto; margin-right: auto; position: relative; z-index: 1; transition: margin-top 0.25s ease; }
+.search-row { display: flex; gap: 8px; margin-top: 18px; max-width: 1100px; margin-left: auto; margin-right: auto; position: relative; z-index: 1; transition: margin-top 0.15s ease; }
 .search { flex: 1; background: rgba(255,255,255,0.22); border: 1px solid rgba(255,255,255,0.35); border-radius: 12px; padding: 10px 14px; color: #fff; font-size: 14px; outline: none; font-weight: 500; }
 .search::placeholder { color: #FFE4EF; }
 .search:focus { background: rgba(255,255,255,0.3); border-color: #FFD966; }
-.chips { display: flex; gap: 8px; overflow-x: auto; margin-top: 14px; padding-bottom: 2px; max-width: 1100px; margin-left: auto; margin-right: auto; scrollbar-width: none; position: relative; z-index: 1; transition: margin-top 0.25s ease; }
+.chips { display: flex; gap: 8px; overflow-x: auto; margin-top: 14px; padding-bottom: 2px; max-width: 1100px; margin-left: auto; margin-right: auto; scrollbar-width: none; position: relative; z-index: 1; transition: margin-top 0.15s ease; }
 .chips::-webkit-scrollbar { display: none; }
 .chip { flex-shrink: 0; border: 1px solid rgba(255,255,255,0.4); background: rgba(255,255,255,0.12); color: #fff; padding: 6px 13px; border-radius: 999px; font-size: 12px; font-weight: 600; }
 .chip.active { background: #FFD966; border-color: #FFD966; color: #7A4A00; font-weight: 700; }
@@ -701,10 +701,17 @@ input, select, textarea { font-family: inherit; }
 
   // Header compacto al hacer scroll: deja más lugar a los productos, sin perder buscador/carrito/categorías a mano.
   const headerEl = document.querySelector('.header');
+  let scrollTicking = false;
   function handleHeaderScroll(){
     headerEl.classList.toggle('scrolled', window.scrollY > 40);
+    scrollTicking = false;
   }
-  window.addEventListener('scroll', handleHeaderScroll, { passive: true });
+  window.addEventListener('scroll', () => {
+    if (!scrollTicking) {
+      requestAnimationFrame(handleHeaderScroll);
+      scrollTicking = true;
+    }
+  }, { passive: true });
   handleHeaderScroll();
 
   const params = new URLSearchParams(window.location.search);
