@@ -5,3 +5,8 @@
 
 [functions]
   node_bundler = "esbuild"
+
+[[redirects]]
+  from = "/producto/:id"
+  to = "/.netlify/functions/product-share?id=:id"
+  status = 200

@@ -40,7 +40,16 @@ input, select, textarea { font-family: inherit; }
 .cart-btn svg { width: 18px; height: 18px; }
 .cart-badge { position: absolute; top: -6px; right: -6px; background: #FFD966; color: #7A4A00; font-size: 11px; font-weight: 800; border-radius: 999px; min-width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; padding: 0 4px; }
 
-.search-row { display: flex; gap: 8px; margin-top: 18px; max-width: 1100px; margin-left: auto; margin-right: auto; position: relative; z-index: 1; }
+.search-row { display: flex; gap: 8px; margin-top: 18px; max-width: 1100px; margin-left: auto; margin-right: auto; position: relative; z-index: 1; flex-wrap: wrap; }
+.sort-select { flex: 0 0 150px; background: rgba(255,255,255,0.22); border: 1px solid rgba(255,255,255,0.35); border-radius: 12px; padding: 10px 10px; color: #fff; font-size: 13px; outline: none; font-weight: 600; }
+.sort-select option { color: #5A2540; }
+.new-badge { position: absolute; top: 12px; left: 12px; background: #FFD966; color: #7A4A00; font-size: 10px; font-weight: 800; padding: 3px 9px; border-radius: 999px; z-index: 2; letter-spacing: 0.3px; }
+.restock-form { display: flex; gap: 6px; margin-top: 8px; }
+.restock-form input { flex: 1; min-width: 0; border: 1px solid #F0D0DE; border-radius: 10px; padding: 7px 9px; font-size: 12px; }
+.restock-form button { background: linear-gradient(135deg, #E85D93, #E8B65C); color: #fff; border: none; border-radius: 10px; padding: 7px 12px; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+.bank-info-box { background: #FDF0F5; border: 1px dashed #D6487F; border-radius: 12px; padding: 12px; font-size: 12.5px; line-height: 1.6; color: #5A2540; margin-top: 10px; }
+.bank-info-box b { display: block; margin-bottom: 4px; font-family: 'Baloo 2', cursive; }
+.icon-btn-round { position: absolute; background: #fff; border: none; border-radius: 999px; width: 28px; height: 28px; z-index: 3; display: flex; align-items: center; justify-content: center; color: #D6487F; }
 .search { flex: 1; background: rgba(255,255,255,0.22); border: 1px solid rgba(255,255,255,0.35); border-radius: 12px; padding: 10px 14px; color: #fff; font-size: 14px; outline: none; font-weight: 500; }
 .search::placeholder { color: #FFE4EF; }
 .search:focus { background: rgba(255,255,255,0.3); border-color: #FFD966; }
@@ -170,7 +179,14 @@ input, select, textarea { font-family: inherit; }
       </button>
     </div>
   </div>
-  <div class="search-row"><input class="search" id="searchInput" placeholder="Buscar producto..."></div>
+  <div class="search-row">
+    <input class="search" id="searchInput" placeholder="Buscar producto...">
+    <select class="sort-select" id="sortSelect">
+      <option value="new">Más nuevos</option>
+      <option value="price_asc">Precio: menor</option>
+      <option value="price_desc">Precio: mayor</option>
+    </select>
+  </div>
   <div class="chips" id="chips"></div>
 </div>
 
@@ -240,6 +256,21 @@ input, select, textarea { font-family: inherit; }
       </div>
       <div class="field-hint" id="genericShippingHint">El costo del envío se coordina aparte, no se cobra en este pago.</div>
 
+      <label style="display:block; font-size:11.5px; font-weight:600; color:#6B5850; margin:14px 0 6px;">Método de pago</label>
+      <div class="ship-options" id="paymentOptions">
+        <label class="ship-option" data-pay="mercadopago">
+          <input type="radio" name="checkoutPayment" value="mercadopago" checked onchange="onPaymentChange()">
+          <span class="ship-icon">💳</span>
+          <span class="ship-text">Mercado Pago</span>
+        </label>
+        <label class="ship-option" data-pay="transferencia">
+          <input type="radio" name="checkoutPayment" value="transferencia" onchange="onPaymentChange()">
+          <span class="ship-icon">🏦</span>
+          <span class="ship-text" id="transferOptionText">Transferencia bancaria</span>
+        </label>
+      </div>
+      <div id="bankInfoBox" class="bank-info-box" style="display:none;"></div>
+
       <div class="summary-box" style="margin-top:14px;" id="orderSummaryBox"></div>
 
       <button class="btn primary" style="width:100%;" id="orderSubmitBtn" onclick="submitCheckout()">Confirmar y pagar</button>
@@ -263,6 +294,7 @@ input, select, textarea { font-family: inherit; }
   let SETTINGS = { store_name: 'Xiomisgoodies', tagline: '', whatsapp: '' };
   let searchTerm = '';
   let activeCat = 'Todos';
+  let sortMode = 'new';
   let CART = [];
 
   const ICONS = {
@@ -334,6 +366,11 @@ input, select, textarea { font-family: inherit; }
     document.getElementById('grid').style.display = 'grid';
     loadCart();
     render();
+
+    const sharedProductId = new URLSearchParams(window.location.search).get('p');
+    if (sharedProductId && PRODUCTS.some(p => p.id === sharedProductId)) {
+      openDetail(sharedProductId);
+    }
   }
 
   function loadCart(){
@@ -457,6 +494,9 @@ input, select, textarea { font-family: inherit; }
     }
 
     updateOrderSummary();
+    document.getElementById('transferOptionText').textContent = 'Transferencia bancaria (' + (Number(SETTINGS.transfer_discount_percent) || 10) + '% off)';
+    document.getElementById('orderSubmitBtn').disabled = false;
+    onPaymentChange();
   }
 
   let correoQuote = null; // { price, deliveryTimeMin, deliveryTimeMax } o null si no aplica/no disponible
@@ -501,14 +541,14 @@ input, select, textarea { font-family: inherit; }
       const data = await res.json();
       if (data.available) {
         correoQuote = data;
-        statusEl.textContent = '✅ Envío: ' + money(data.price) + (data.deliveryTimeMax ? ' · llega en ' + data.deliveryTimeMin + '-' + data.deliveryTimeMax + ' días hábiles' : '');
+        statusEl.innerHTML = '✅ Envío: ' + money(data.price) + (data.deliveryTimeMax ? ' · llega en ' + data.deliveryTimeMin + '-' + data.deliveryTimeMax + ' días hábiles' : '');
       } else {
         correoQuote = null;
-        statusEl.textContent = 'No pudimos calcular el envío automático todavía — se coordina el costo aparte.';
+        statusEl.innerHTML = 'No pudimos calcular el envío automático todavía. <a href="https://www.correoargentino.com.ar/MiCorreo/public" target="_blank" rel="noopener" style="color:#D6487F; font-weight:700;">Cotizalo vos acá ↗</a>';
       }
     } catch {
       correoQuote = null;
-      statusEl.textContent = 'No pudimos calcular el envío automático todavía — se coordina el costo aparte.';
+      statusEl.innerHTML = 'No pudimos calcular el envío automático todavía. <a href="https://www.correoargentino.com.ar/MiCorreo/public" target="_blank" rel="noopener" style="color:#D6487F; font-weight:700;">Cotizalo vos acá ↗</a>';
     }
     document.getElementById('genericShippingHint').style.display = correoQuote ? 'none' : 'block';
     updateOrderSummary();
@@ -521,17 +561,46 @@ input, select, textarea { font-family: inherit; }
     return { correo: '📮 Correo Argentino', uber: '🚗 Uber (circunvalación)', retiro: '🏪 Retiro' }[sel.value];
   }
 
+  window.onPaymentChange = function(){
+    const sel = document.querySelector('input[name=checkoutPayment]:checked');
+    document.querySelectorAll('#paymentOptions .ship-option').forEach(opt => {
+      opt.classList.toggle('selected', sel && opt.dataset.pay === sel.value);
+    });
+    document.getElementById('orderSubmitBtn').textContent = (sel && sel.value === 'transferencia') ? 'Confirmar pedido' : 'Confirmar y pagar';
+    updateOrderSummary();
+  };
+
   function updateOrderSummary(){
     const items = cartProducts();
     const productsTotal = items.reduce((s,p) => s + Number(p.price) * cartQty(p.id), 0);
-    const method = document.querySelector('input[name=checkoutShipping]:checked')?.value;
+    const shipMethod = document.querySelector('input[name=checkoutShipping]:checked')?.value;
+    const payMethod = document.querySelector('input[name=checkoutPayment]:checked')?.value || 'mercadopago';
     const shipLabel = selectedShippingLabel();
-    const shippingCost = (method === 'correo' && correoQuote) ? Number(correoQuote.price) : 0;
-    const total = productsTotal + shippingCost;
+    const shippingCost = (payMethod === 'mercadopago' && shipMethod === 'correo' && correoQuote) ? Number(correoQuote.price) : 0;
+    const discountPercent = payMethod === 'transferencia' ? (Number(SETTINGS.transfer_discount_percent) || 10) : 0;
+    const discountAmount = Math.round(productsTotal * discountPercent / 100);
+    const total = productsTotal - discountAmount + shippingCost;
+
     document.getElementById('orderSummaryBox').innerHTML =
       items.map(p => '<div class="summary-line"><span>' + escHtml(p.name) + (cartQty(p.id) > 1 ? ' ×' + cartQty(p.id) : '') + '</span><span>' + money(p.price * cartQty(p.id)) + '</span></div>').join('') +
-      '<div class="summary-line" style="margin-top:6px; padding-top:6px; border-top:1px solid #DCD0C6;"><span>Envío</span><span>' + (shippingCost > 0 ? money(shippingCost) : (shipLabel || '—')) + '</span></div>' +
+      (discountPercent > 0 ? '<div class="summary-line" style="color:#4C7A5B; font-weight:700;"><span>Descuento transferencia (' + discountPercent + '%)</span><span>−' + money(discountAmount) + '</span></div>' : '') +
+      '<div class="summary-line" style="margin-top:6px; padding-top:6px; border-top:1px solid #F0D0DE;"><span>Envío</span><span>' + (shippingCost > 0 ? money(shippingCost) : (shipLabel || '—')) + '</span></div>' +
       '<div class="cart-total-row" style="margin-top:8px; padding-top:8px;"><span>Total</span><span>' + money(total) + '</span></div>';
+
+    const bankBox = document.getElementById('bankInfoBox');
+    if (payMethod === 'transferencia') {
+      bankBox.style.display = 'block';
+      if (SETTINGS.transfer_alias || SETTINGS.transfer_cbu) {
+        bankBox.innerHTML = '<b>Datos para transferir</b>' +
+          (SETTINGS.transfer_alias ? 'Alias: ' + escHtml(SETTINGS.transfer_alias) + '<br>' : '') +
+          (SETTINGS.transfer_cbu ? 'CBU: ' + escHtml(SETTINGS.transfer_cbu) + '<br>' : '') +
+          (SETTINGS.transfer_holder ? 'Titular: ' + escHtml(SETTINGS.transfer_holder) : '');
+      } else {
+        bankBox.innerHTML = '<span style="color:#B93868; font-weight:600;">Todavía no cargamos los datos bancarios. Escribinos por WhatsApp para coordinar.</span>';
+      }
+    } else {
+      bankBox.style.display = 'none';
+    }
   }
 
   window.submitCheckout = async function(){
@@ -555,17 +624,41 @@ input, select, textarea { font-family: inherit; }
       address = pt.name + ' — ' + pt.address + (pt.hours ? ' (' + pt.hours + ')' : '');
     }
 
+    const payMethod = document.querySelector('input[name=checkoutPayment]:checked')?.value || 'mercadopago';
     const btn = document.getElementById('orderSubmitBtn');
     btn.disabled = true;
+
+    const cartPayload = Object.entries(CART).map(([productId, quantity]) => ({ productId, quantity }));
+    const buyerPayload = { name, phone, shippingMethod: method, address, postalCode };
+
+    if (payMethod === 'transferencia') {
+      btn.textContent = 'Generando pedido...';
+      try {
+        const res = await fetch('/.netlify/functions/create-transfer-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cart: cartPayload, buyer: buyerPayload })
+        });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || 'No se pudo generar el pedido');
+        localStorage.removeItem('xiomara_cart');
+        CART = {};
+        renderCartBadge();
+        showTransferConfirmation(result);
+      } catch (err) {
+        showToast(err.message);
+        btn.disabled = false;
+        btn.textContent = 'Confirmar pedido';
+      }
+      return;
+    }
+
     btn.textContent = 'Generando link de pago...';
     try {
       const res = await fetch('/.netlify/functions/create-preference', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cart: Object.entries(CART).map(([productId, quantity]) => ({ productId, quantity })),
-          buyer: { name, phone, shippingMethod: method, address, postalCode }
-        })
+        body: JSON.stringify({ cart: cartPayload, buyer: buyerPayload })
       });
       const result = await res.json();
       if (!res.ok || !result.url) throw new Error(result.error || 'No se pudo generar el pago');
@@ -577,6 +670,20 @@ input, select, textarea { font-family: inherit; }
       btn.textContent = 'Confirmar y pagar';
     }
   };
+
+  function showTransferConfirmation(result){
+    const num = (SETTINGS.whatsapp || '').replace(/\D/g,'');
+    const msg = 'Hola! Hice un pedido por transferencia (total ' + money(result.total) + '). Te mando el comprobante.';
+    const wspBtn = num
+      ? '<button class="btn primary" style="width:100%;" onclick="window.open(\'https://wa.me/' + num + '?text=' + encodeURIComponent(msg) + '\',\'_blank\')">Mandar comprobante por WhatsApp</button>'
+      : '<p style="color:#B93868; font-size:13px;">Escribinos para coordinar el pago.</p>';
+    document.getElementById('orderFormSection').innerHTML =
+      '<div style="text-align:center; padding:10px 0 4px;">' +
+        '<div class="serif" style="font-size:19px; margin-bottom:8px; color:#5A2540;">¡Pedido registrado! 🎉</div>' +
+        '<p style="font-size:13px; color:#5A2540; margin-bottom:16px; line-height:1.5;">Transferí <b>' + money(result.total) + '</b> y mandanos el comprobante por WhatsApp para confirmar tu pedido.</p>' +
+        wspBtn +
+      '</div>';
+  }
 
   function render(){
     document.getElementById('brandName').textContent = SETTINGS.store_name || 'Mi tienda';
@@ -598,6 +705,8 @@ input, select, textarea { font-family: inherit; }
       const matchesCat = activeCat === 'Todos' || p.category === activeCat;
       return matchesSearch && matchesCat;
     });
+    if (sortMode === 'price_asc') list = list.slice().sort((a,b) => Number(a.price) - Number(b.price));
+    else if (sortMode === 'price_desc') list = list.slice().sort((a,b) => Number(b.price) - Number(a.price));
 
     const available = PRODUCTS.filter(p => p.status === 'disponible').length;
     document.getElementById('countLbl').innerHTML = '<b>' + PRODUCTS.length + '</b> productos · <b>' + available + '</b> disponibles';
@@ -615,9 +724,11 @@ input, select, textarea { font-family: inherit; }
       const imgHtml = thumb
         ? '<img src="' + escHtml(thumb) + '" alt="' + escHtml(p.name) + '" data-cat="' + escHtml(p.category||'') + '" onerror="imgFallback(this)">'
         : iconFor(p.category);
+      const isNew = p.created_at && (Date.now() - new Date(p.created_at).getTime()) < 7 * 24 * 60 * 60 * 1000;
 
       return '' +
       '<div class="card ' + (sold?'sold':'') + '">' +
+        (isNew && !sold ? '<div class="new-badge">Nuevo</div>' : '') +
         '<div class="tag-hole"><svg viewBox="0 0 24 24" fill="#F0C878"><path d="M12 0l2.2 8.8L23 12l-8.8 2.2L12 23l-2.2-8.8L1 12l8.8-2.2z"/></svg></div>' +
         '<div class="card-img" onclick="openDetail(\'' + p.id + '\')" style="cursor:pointer;">' + imgHtml + '<div class="ribbon">Agotado</div></div>' +
         '<div class="card-body">' +
@@ -628,7 +739,7 @@ input, select, textarea { font-family: inherit; }
             '<div class="stock-hint">' + (!sold && stock <= 3 ? 'Quedan ' + stock : '') + '</div>' +
           '</div>' +
           (sold
-            ? '<div class="sold-label">Agotado</div>'
+            ? '<div class="restock-form"><input type="tel" id="restockCard-' + p.id + '" placeholder="Tu WhatsApp"><button onclick="requestRestock(\'restockCard-' + p.id + '\',\'' + p.id + '\')">Avisame</button></div>'
             : (inCart
                 ? qtyStepperHtml(p.id, false, false)
                 : '<button class="cta cta-add" onclick="addToCart(\'' + p.id + '\')">' +
@@ -661,7 +772,8 @@ input, select, textarea { font-family: inherit; }
 
     document.getElementById('detailContent').innerHTML =
       '<div style="position:relative;">' +
-        '<button class="panel-close" style="position:absolute; top:10px; right:10px; background:#fff; border-radius:999px; width:28px; height:28px; z-index:3;" onclick="closeOverlay(\'detailOverlay\')">✕</button>' +
+        '<button class="icon-btn-round" style="top:10px; right:48px;" onclick="shareProduct(\'' + p.id + '\')" title="Compartir"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg></button>' +
+        '<button class="icon-btn-round" style="top:10px; right:10px;" onclick="closeOverlay(\'detailOverlay\')">✕</button>' +
         '<div class="carousel-track" id="carouselTrack"></div>' +
       '</div>' +
       '<div style="padding:18px 20px 20px;">' +
@@ -673,7 +785,7 @@ input, select, textarea { font-family: inherit; }
           (p.description ? escHtml(p.description) : '<span style="color:#A9998F; font-style:italic;">Sin descripción todavía.</span>') +
         '</div>' +
         (detailSold
-          ? '<div class="sold-label" style="margin-top:0;">Agotado</div>'
+          ? '<div class="restock-form"><input type="tel" id="restockDetail-' + p.id + '" placeholder="Tu WhatsApp"><button onclick="requestRestock(\'restockDetail-' + p.id + '\',\'' + p.id + '\')">Avisame</button></div>'
           : (inCart
               ? qtyStepperHtml(p.id, false, false)
               : '<button class="cta cta-add" onclick="addToCart(\'' + p.id + '\'); openDetail(\'' + p.id + '\');">' +
@@ -713,7 +825,38 @@ input, select, textarea { font-family: inherit; }
 
   window.closeOverlay = function(id){ document.getElementById(id).classList.remove('show'); };
 
+  window.requestRestock = async function(inputId, productId){
+    const input = document.getElementById(inputId);
+    const phone = input.value.trim();
+    if (!phone) { showToast('Ingresá tu WhatsApp'); return; }
+    try {
+      const res = await fetch('/.netlify/functions/notify-restock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId, phone })
+      });
+      if (!res.ok) throw new Error();
+      showToast('¡Listo! Te avisamos cuando vuelva.');
+      input.value = '';
+    } catch {
+      showToast('No se pudo guardar, probá de nuevo.');
+    }
+  };
+
+  window.shareProduct = function(id){
+    const p = PRODUCTS.find(x => x.id === id);
+    if (!p) return;
+    const url = window.location.origin + '/producto/' + id;
+    const text = p.name + ' — ' + money(p.price);
+    if (navigator.share) {
+      navigator.share({ title: p.name, text, url }).catch(() => {});
+    } else {
+      window.open('https://wa.me/?text=' + encodeURIComponent(text + ' ' + url), '_blank');
+    }
+  };
+
   document.getElementById('searchInput').addEventListener('input', (e) => { searchTerm = e.target.value; render(); });
+  document.getElementById('sortSelect').addEventListener('change', (e) => { sortMode = e.target.value; render(); });
 
   // Carrito flotante: aparece al bajar, cuando el header (con el carrito de arriba) ya no se ve.
   const cartFloatEl = document.getElementById('cartFloat');

@@ -107,6 +107,8 @@ input, select, textarea { font-family: inherit; }
     <button class="tab" data-view="viewCategories" onclick="switchTab('viewCategories')">Categorías</button>
     <button class="tab" data-view="viewPickup" onclick="switchTab('viewPickup')">Retiro</button>
     <button class="tab" data-view="viewOrders" onclick="switchTab('viewOrders')">Pedidos</button>
+    <button class="tab" data-view="viewStockAlerts" onclick="switchTab('viewStockAlerts')">Avisos de stock</button>
+    <button class="tab" data-view="viewSummary" onclick="switchTab('viewSummary')">Resumen</button>
     <button class="tab" data-view="viewSettings" onclick="switchTab('viewSettings')">Ajustes</button>
   </div>
 
@@ -137,6 +139,17 @@ input, select, textarea { font-family: inherit; }
       <div id="pickupList" style="margin-top:16px;"><div class="loading">Cargando...</div></div>
     </div>
 
+    <div class="view" id="viewStockAlerts">
+      <div class="section-head"><h2>Avisos de stock</h2></div>
+      <p class="field-hint" style="margin-bottom:14px;">Compradores que pidieron que les avisen cuando vuelva un producto agotado.</p>
+      <div id="stockAlertsList"><div class="loading">Cargando...</div></div>
+    </div>
+
+    <div class="view" id="viewSummary">
+      <div class="section-head"><h2>Resumen (últimos 7 días)</h2></div>
+      <div id="summaryContent"><div class="loading">Cargando...</div></div>
+    </div>
+
     <div class="view" id="viewOrders">
       <div class="section-head"><h2>Pedidos</h2></div>
       <div id="ordersList"><div class="loading">Cargando...</div></div>
@@ -147,6 +160,13 @@ input, select, textarea { font-family: inherit; }
       <div class="field"><label>Nombre de la marca</label><input id="setName"></div>
       <div class="field"><label>Frase debajo del nombre</label><input id="setTagline"></div>
       <div class="field"><label>WhatsApp (con código de país, sin +, sin espacios)</label><input id="setWsp" placeholder="Ej: 5493511234567"></div>
+
+      <h3 style="margin-top:24px;">Transferencia bancaria</h3>
+      <div class="field"><label>Alias</label><input id="setTransferAlias" placeholder="Ej: XIOMISGOODIES.MP"></div>
+      <div class="field"><label>CBU</label><input id="setTransferCbu" placeholder="Ej: 0000003100...0000000001"></div>
+      <div class="field"><label>Titular de la cuenta</label><input id="setTransferHolder" placeholder="Ej: Xiomara Agustina Barrios"></div>
+      <div class="field"><label>Descuento por transferencia (%)</label><input id="setTransferDiscount" type="number" min="0" max="100" step="1" placeholder="10"></div>
+
       <button class="btn primary" onclick="saveSettings()">Guardar ajustes</button>
     </div>
   </div>
@@ -342,6 +362,8 @@ input, select, textarea { font-family: inherit; }
     if (view === 'viewOrders') loadOrders();
     if (view === 'viewCategories') loadCategories();
     if (view === 'viewPickup') loadPickupPoints();
+    if (view === 'viewStockAlerts') loadStockAlerts();
+    if (view === 'viewSummary') loadSummary();
   };
 
   // ---------- puntos de retiro ----------
@@ -403,6 +425,10 @@ input, select, textarea { font-family: inherit; }
     document.getElementById('setName').value = SETTINGS.store_name || '';
     document.getElementById('setTagline').value = SETTINGS.tagline || '';
     document.getElementById('setWsp').value = SETTINGS.whatsapp || '';
+    document.getElementById('setTransferAlias').value = SETTINGS.transfer_alias || '';
+    document.getElementById('setTransferCbu').value = SETTINGS.transfer_cbu || '';
+    document.getElementById('setTransferHolder').value = SETTINGS.transfer_holder || '';
+    document.getElementById('setTransferDiscount').value = SETTINGS.transfer_discount_percent != null ? SETTINGS.transfer_discount_percent : 10;
     await loadCategoriesQuiet();
     await loadProducts();
   }
@@ -699,8 +725,12 @@ input, select, textarea { font-family: inherit; }
     const store_name = document.getElementById('setName').value.trim() || 'Mi tienda';
     const tagline = document.getElementById('setTagline').value.trim();
     const whatsapp = document.getElementById('setWsp').value.trim();
+    const transfer_alias = document.getElementById('setTransferAlias').value.trim();
+    const transfer_cbu = document.getElementById('setTransferCbu').value.trim();
+    const transfer_holder = document.getElementById('setTransferHolder').value.trim();
+    const transfer_discount_percent = document.getElementById('setTransferDiscount').value;
     try {
-      const { settings } = await callAdmin('updateSettings', { store_name, tagline, whatsapp });
+      const { settings } = await callAdmin('updateSettings', { store_name, tagline, whatsapp, transfer_alias, transfer_cbu, transfer_holder, transfer_discount_percent });
       SETTINGS = settings;
       showToast('Ajustes guardados');
     } catch (e) { showToast(e.message); }
@@ -725,8 +755,10 @@ input, select, textarea { font-family: inherit; }
     }
     const payBadge = { pendiente: '⏳ Pago pendiente', aprobado: '✅ Pagado', rechazado: '❌ Rechazado' };
     const shipLabel = { correo: '📮 Correo Argentino', uber: '🚗 Uber (circunvalación)', retiro: '🏪 Retiro' };
+    const payMethodLabel = { mercadopago: '💳 Mercado Pago', transferencia: '🏦 Transferencia' };
     list.innerHTML = orders.map(o => {
       const items = (o.order_items || []).map(i => escHtml(i.product_name) + ' (' + money(i.product_price) + ')').join(', ');
+      const needsConfirm = o.payment_method === 'transferencia' && o.payment_status === 'pendiente';
       return (
       '<div class="orow">' +
         '<div class="orow-top">' +
@@ -734,12 +766,14 @@ input, select, textarea { font-family: inherit; }
           '<span>' + (payBadge[o.payment_status] || o.payment_status) + '</span>' +
         '</div>' +
         '<div class="orow-meta">' +
+          (payMethodLabel[o.payment_method] || o.payment_method) + '<br>' +
           items + '<br>' +
           escHtml(o.buyer_name) + ' · ' + escHtml(o.buyer_phone) + '<br>' +
           'Envío: ' + (shipLabel[o.shipping_method] || o.shipping_method) +
           (o.shipping_address ? '<br>' + escHtml(o.shipping_address) : '') +
           (o.shipping_postal_code ? ' (CP ' + escHtml(o.shipping_postal_code) + ')' : '') +
         '</div>' +
+        (needsConfirm ? '<button class="btn primary" style="width:100%; margin-top:8px;" onclick="confirmTransferPayment(\'' + o.id + '\')">Confirmar pago recibido</button>' : '') +
         '<div class="orow-bottom">' +
           '<label style="display:flex; align-items:center; gap:6px; font-size:12px;">' +
             '<input type="checkbox" ' + (o.shipping_status === 'enviado' ? 'checked' : '') + ' onchange="toggleShipped(\'' + o.id + '\', this.checked)">' +
@@ -750,6 +784,14 @@ input, select, textarea { font-family: inherit; }
       '</div>');
     }).join('');
   }
+
+  window.confirmTransferPayment = async function(id){
+    try {
+      await callAdmin('confirmTransferPayment', { id });
+      showToast('Pago confirmado, stock actualizado');
+      loadOrders();
+    } catch (e) { showToast(e.message); }
+  };
 
   window.toggleShipped = async function(id, checked){
     try {
@@ -765,6 +807,79 @@ input, select, textarea { font-family: inherit; }
       loadOrders();
     } catch (e) { showToast(e.message); }
   };
+
+  // ---------- avisos de stock ----------
+  async function loadStockAlerts(){
+    document.getElementById('stockAlertsList').innerHTML = '<div class="loading">Cargando...</div>';
+    try {
+      const { notifications } = await callAdmin('listStockNotifications', {});
+      renderStockAlerts(notifications);
+    } catch (e) {
+      document.getElementById('stockAlertsList').innerHTML = '<p class="empty-msg">No se pudieron cargar.</p>';
+    }
+  }
+  function renderStockAlerts(rows){
+    const list = document.getElementById('stockAlertsList');
+    if (!rows || rows.length === 0) {
+      list.innerHTML = '<p class="empty-msg">Todavía no hay avisos pedidos.</p>';
+      return;
+    }
+    list.innerHTML = rows.map(r => {
+      const prodName = (r.products && r.products.name) || 'Producto eliminado';
+      const stock = r.products ? Number(r.products.stock) : 0;
+      const num = String(r.phone || '').replace(/\D/g, '');
+      const msg = encodeURIComponent('Hola! Volvió a estar disponible: ' + prodName + '. ¿Todavía te interesa?');
+      return (
+        '<div class="prow">' +
+          '<div style="flex:1;">' +
+            '<div class="prow-name">' + escHtml(prodName) + (stock > 0 ? ' <span style="color:#4C7A5B; font-size:11px;">(ya hay stock)</span>' : '') + '</div>' +
+            '<div class="prow-meta">' + escHtml(r.phone) + '</div>' +
+          '</div>' +
+          (num ? '<a class="icon-btn" href="https://wa.me/' + num + '?text=' + msg + '" target="_blank" title="Escribir por WhatsApp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></a>' : '') +
+          '<button class="icon-btn danger" title="Eliminar" onclick="deleteStockNotification(\'' + r.id + '\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0-1 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 6"/></svg></button>' +
+        '</div>'
+      );
+    }).join('');
+  }
+  window.deleteStockNotification = async function(id){
+    try {
+      await callAdmin('deleteStockNotification', { id });
+      loadStockAlerts();
+    } catch (e) { showToast(e.message); }
+  };
+
+  // ---------- resumen semanal ----------
+  async function loadSummary(){
+    document.getElementById('summaryContent').innerHTML = '<div class="loading">Cargando...</div>';
+    try {
+      const { orders } = await callAdmin('listOrders', {});
+      renderSummary(orders || []);
+    } catch (e) {
+      document.getElementById('summaryContent').innerHTML = '<p class="empty-msg">No se pudo cargar el resumen.</p>';
+    }
+  }
+  function renderSummary(orders){
+    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const weekOrders = orders.filter(o => new Date(o.created_at).getTime() >= weekAgo);
+    const approved = weekOrders.filter(o => o.payment_status === 'aprobado');
+    const revenue = approved.reduce((s, o) => s + Number(o.total || 0), 0);
+
+    const soldNames = new Set();
+    approved.forEach(o => (o.order_items || []).forEach(i => { if (i.product_id) soldNames.add(i.product_name); }));
+
+    const agotados = PRODUCTS.filter(p => Number(p.stock) <= 0);
+    const sinMovimiento = PRODUCTS.filter(p => Number(p.stock) > 0 && !soldNames.has(p.name));
+
+    const html =
+      '<div class="prow" style="margin-bottom:10px;"><div style="flex:1;"><div class="prow-name">Ventas confirmadas</div><div class="prow-meta">' + approved.length + ' pedido(s) esta semana</div></div><strong style="font-size:16px;">' + money(revenue) + '</strong></div>' +
+      '<div class="prow" style="margin-bottom:16px;"><div style="flex:1;"><div class="prow-name">Pedidos totales (incluye pendientes)</div></div><strong>' + weekOrders.length + '</strong></div>' +
+      '<h3 style="margin-bottom:8px;">Agotados (' + agotados.length + ')</h3>' +
+      (agotados.length ? agotados.map(p => '<div class="prow"><div class="prow-name" style="flex:1;">' + escHtml(p.name) + '</div></div>').join('') : '<p class="empty-msg" style="padding:12px 0;">Nada agotado por ahora 🎉</p>') +
+      '<h3 style="margin:16px 0 8px;">Sin movimiento en la semana (' + sinMovimiento.length + ')</h3>' +
+      (sinMovimiento.length ? sinMovimiento.map(p => '<div class="prow"><div class="prow-name" style="flex:1;">' + escHtml(p.name) + '</div><span class="prow-meta">Stock: ' + p.stock + '</span></div>').join('') : '<p class="empty-msg" style="padding:12px 0;">Todo se movió esta semana 👍</p>');
+
+    document.getElementById('summaryContent').innerHTML = html;
+  }
 </script>
 </body>
 </html>
